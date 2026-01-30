@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* Sidebar */
+        --color-sidebar-bg: 255 255 255;         /* white */
+        --color-sidebar-border: 229 231 235;     /* gray-200 */
+        --color-sidebar-text: 17 24 39;          /* gray-900 */
+        --color-sidebar-text-muted: 107 114 128; /* gray-500 */
+        --color-sidebar-hover-bg: 243 244 246;   /* gray-100 */
+        --color-sidebar-active-text: 37 99 235;  /* blue-600 */
+        --color-sidebar-separator: 229 231 235;  /* gray-200 */
+
+        /* Layout / Content */
+        --color-page-bg: 249 250 251;            /* gray-50 */
+        --color-heading: 17 24 39;               /* gray-900 */
+        --color-content-border: 229 231 235;     /* gray-200 */
+        --color-content-bg: 255 255 255;         /* white */
+        --color-text-muted: 107 114 128;         /* gray-500 */
+    }
+}
