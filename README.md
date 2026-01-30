@@ -1,59 +1,113 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Atomic Habits Manager
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Web app for tracking and managing habits based on James Clear's **Atomic Habits** methodology. Built with Laravel 12, Vue 3, and Tailwind CSS.
 
-## About Laravel
+Aplicacion web para gestionar habitos basada en la metodologia de **Atomic Habits** de James Clear. Construida con Laravel 12, Vue 3 y Tailwind CSS.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Purpose / Proposito
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**EN:** Provides a backoffice where users can create habits with psychology-based strategy fields (implementation intention, cue, reframe, temptation bundling) and schedule them with flexible recurrence rules (daily, weekly, every N days, one-time). The goal is to apply the four laws of behavior change from the book into a practical tool.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**ES:** Ofrece un backoffice donde los usuarios pueden crear habitos con campos de estrategia basados en psicologia (intencion de implementacion, senal, reencuadre, acumulacion de tentaciones) y programarlos con reglas de recurrencia flexibles (diario, semanal, cada N dias, puntual). El objetivo es aplicar las cuatro leyes del cambio de comportamiento del libro en una herramienta practica.
 
-## Learning Laravel
+## Tech Stack
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- **Backend:** Laravel 12, PHP 8.2+
+- **Frontend:** Vue 3 (Options + Composition API), Tailwind CSS, Flowbite
+- **Database:** MySQL
+- **Build:** Vite
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Architecture / Arquitectura
 
-## Laravel Sponsors
+### Actions Pattern
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Business logic is encapsulated in single-responsibility Action classes (`app/Actions/`). Each action implements a contract interface (`CreateAction`, `UpdateAction`, `DeleteAction`, `ExportAction`) and exposes a static `execute()` method.
 
-### Premium Partners
+La logica de negocio esta encapsulada en clases Action de responsabilidad unica (`app/Actions/`). Cada action implementa una interfaz de contrato y expone un metodo estatico `execute()`.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```
+app/Actions/
+    Contracts/          # Action, CreateAction, UpdateAction, DeleteAction, ExportAction
+    Habits/             # CreateHabitAction, UpdateHabitAction, DeleteHabitAction
+    Categories/         # CreateCategoryAction, UpdateCategoryAction, ...
+```
 
-## Contributing
+### ViewModels
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Each backoffice page has a ViewModel (`app/ViewModels/`) that builds all the UI configuration: table columns, form fields, filter fields, modals, and resource detail lines. ViewModels implement the `Datatable` contract and use generator services to construct the frontend structure.
 
-## Code of Conduct
+Cada pagina del backoffice tiene un ViewModel (`app/ViewModels/`) que construye toda la configuracion de UI: columnas de tabla, campos de formulario, filtros, modales y lineas de detalle. Los ViewModels implementan el contrato `Datatable` y usan servicios generadores para construir la estructura del frontend.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```
+app/ViewModels/
+    Contracts/Datatable.php
+    Backoffice/
+        Habits/GetHabitsViewModel.php
+        GetDashboardViewModel.php
+```
 
-## Security Vulnerabilities
+### Frontend UI Generator Services
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The backend defines the entire UI structure through PHP generator services (`app/Services/Frontend/`). These services produce arrays that Vue components consume dynamically, enabling a configuration-driven UI without hardcoding forms or tables in the frontend.
 
-## License
+El backend define toda la estructura de UI mediante servicios generadores PHP (`app/Services/Frontend/`). Estos servicios producen arrays que los componentes Vue consumen dinamicamente, permitiendo una UI dirigida por configuracion sin hardcodear formularios o tablas en el frontend.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```
+app/Services/Frontend/
+    TableGenerator.php          # Table columns and sorting
+    FormFieldsGenerator.php     # Form fields (text, select, textarea, checkbox, date, image)
+    ModalGenerator.php          # CRUD modals
+    ButtonGenerator.php         # Action buttons
+    ResourceDetailGenerator.php # Detail view lines
+    SidebarGenerator.php        # Sidebar navigation items
+    StatsGenerator.php          # Dashboard stat cards
+```
+
+### Enums
+
+PHP 8.1 backed enums (`app/Enums/`) encapsulate domain values with labels and associated data (e.g., `HabitNature` maps build/break to user-friendly labels and auto-assigned colors).
+
+Enums respaldados de PHP 8.1 (`app/Enums/`) encapsulan valores de dominio con labels y datos asociados (ej: `HabitNature` mapea build/break a labels amigables y colores auto-asignados).
+
+### Pipeline Filters
+
+Table filtering uses Laravel's `Pipeline` pattern. Each filter is a class (`app/Filters/`) that receives the query builder and applies conditions based on request parameters.
+
+El filtrado de tablas usa el patron `Pipeline` de Laravel. Cada filtro es una clase (`app/Filters/`) que recibe el query builder y aplica condiciones segun los parametros del request.
+
+### Vue Component Structure
+
+The frontend follows a layered component architecture:
+
+El frontend sigue una arquitectura de componentes por capas:
+
+```
+resources/js/
+    layouts/            # BackofficeLayout (sidebar + content area)
+    pages/              # Page-level components (DatatablePage, DashboardPage)
+    components/
+        templates/      # Reusable page templates (TableListTemplate, FormTemplate)
+        common/         # CRUD resource components (AppCreateResource, AppEditResource, ...)
+        ui/             # Base UI components
+            datatable/  # Table, rows, columns, pagination
+            forms/      # Input fields, buttons, errors
+            sidebars/   # Sidebar and navigation items
+            modals/     # Modal dialogs
+            toasts/     # Toast notifications
+    composables/        # Shared logic (useForm, useDatatable, useModal, useAxios, ...)
+    providers/          # App-level providers (Toast, DataProvider)
+```
+
+## Database Schema
+
+```
+habits (1) ── (N) habit_schedules (1) ── (N) habit_occurrences
+                                                     │
+                                                     ▼
+                                              daily_report_entries
+```
+
+- **habits**: Habit catalog with strategy fields (nature, desire type, cue, reframe, implementation intention)
+- **habit_schedules**: Recurrence rules (daily, weekly, every N days, one-time) with habit stacking support
+- **habit_occurrences**: Concrete calendar instances generated from schedules
+- **daily_report_entries**: End-of-day reports linking to occurrences or free-form activities
