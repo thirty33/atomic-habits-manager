@@ -15,6 +15,7 @@ class Modal implements Contracts\Modal
         protected readonly ?string $textCancelButton = null,
         protected readonly ?array $formFields = null,
         protected readonly ?array $extraData = null,
+        protected readonly ?array $steps = null,
     ) {}
 
     public function getType(): string
@@ -34,6 +35,7 @@ class Modal implements Contracts\Modal
             'text_cancel_button' => $this->textCancelButton,
             'form_fields' => $this->formFields,
             'extra_data' => $this->extraData,
+            'steps' => $this->steps ? array_map(fn (ModalStep $step) => $step->toArray(), $this->steps) : null,
         ], fn ($value) => $value !== null);
     }
 }

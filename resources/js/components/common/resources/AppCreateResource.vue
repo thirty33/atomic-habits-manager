@@ -5,9 +5,10 @@ export default {
 </script>
 
 <script setup>
-import { reactive, inject } from "vue";
+import { reactive, computed, inject } from "vue";
 import useForm from "@/composables/useForm.js";
 import { AppForm } from "@/components/common";
+import AppStepForm from "@/components/common/resources/AppStepForm.vue";
 
 const props = defineProps({
     model: Object,
@@ -19,18 +20,23 @@ const emit = defineEmits(["processed", "close"]);
 const addSuccessToast = inject("addSuccessToast");
 const addErrorToast = inject("addErrorToast");
 
+const hasSteps = computed(() => props.modalData?.steps?.length > 0);
+
 const form = reactive({});
 const formFields = props?.modalData?.form_fields;
 
-formFields.forEach((field) => {
-    if (typeof field.props?.defaultValue !== "undefined")
-    {
-        form[field.name] = field.props?.defaultValue;
-        return;
-    }
+if (formFields) {
+    formFields.forEach((field) => {
+        const fieldName = field.props?.name;
+        if (typeof field.props?.defaultValue !== "undefined")
+        {
+            form[fieldName] = field.props?.defaultValue;
+            return;
+        }
 
-    form[field.name] = props.model?.[field.name] || "";
-});
+        form[fieldName] = props.model?.[fieldName] || "";
+    });
+}
 
 const { cssClassFor, errorFor, submit, isSubmitting } = useForm(
     props?.modalData?.action?.url,
@@ -60,7 +66,14 @@ const submitForm = () => {
 </script>
 
 <template>
+    <AppStepForm
+        v-if="hasSteps"
+        :steps="modalData.steps"
+        @processed="emit('processed')"
+        @close="emit('close')"
+    />
     <AppForm
+        v-else
         :title="modalData?.title"
         :form="form"
         :form-fields="modalData?.form_fields"

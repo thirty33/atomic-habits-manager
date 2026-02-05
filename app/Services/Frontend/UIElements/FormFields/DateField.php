@@ -10,17 +10,26 @@ class DateField implements Contracts\Field
 
     const CSS_FIELD_CLASS = 'bg-gray-50 p-1.6 mt-3 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500';
 
+    protected ?array $visibleWhen = null;
+
     public function __construct(
         protected string $name,
         protected string $label,
         protected ?string $defaultValue = null,
     ) {}
 
+    public function visibleWhen(array $condition): static
+    {
+        $this->visibleWhen = $condition;
+        return $this;
+    }
+
     public function generate(): array
     {
-        return [
+        return array_filter([
             'uuid' => \Str::uuid(),
             'component' => self::COMPONENT,
+            'visible_when' => $this->visibleWhen,
             'props' => [
                 'name' => $this->name,
                 'label' => __($this->label),
@@ -28,6 +37,6 @@ class DateField implements Contracts\Field
                 'cssLabelClass' => self::CSS_LABEL_CLASS,
                 'defaultValue' => $this->defaultValue,
             ],
-        ];
+        ], fn ($v) => $v !== null);
     }
 }

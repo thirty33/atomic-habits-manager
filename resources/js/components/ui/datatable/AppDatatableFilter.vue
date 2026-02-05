@@ -41,8 +41,8 @@ const loadedComponents = components(props.fields, formFieldsLoader);
 </script>
 
 <template>
-    <div class="flex flex-wrap items-center justify-between mb-4">
-        <div class="flex items-center w-full mb-4 space-x-4 sm:mb-0 sm:w-auto">
+    <div class="mb-4">
+        <div class="grid grid-cols-2 gap-3 lg:flex lg:items-end lg:space-x-4">
             <div
                 v-for="field in fields"
                 :key="`filter-field-${field.props.name}-${field.uuid}`"
@@ -57,7 +57,7 @@ const loadedComponents = components(props.fields, formFieldsLoader);
 
             <button
                 type="button"
-                class="inline-flex items-center px-4 py-2 mt-8 text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 font-medium rounded-lg text-sm text-center"
+                class="inline-flex items-center justify-center px-4 py-2 self-end text-white bg-btn-secondary hover:bg-btn-secondary-hover focus:ring-4 focus:outline-none focus:ring-btn-secondary/30 font-medium rounded-lg text-sm text-center transition-colors"
                 @click="resetFilters"
             >
                 Limpiar filtros

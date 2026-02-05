@@ -23,7 +23,7 @@ defineEmits(['sort'])
             <th
                 v-for="(column, index) in columns"
                 :key='`column-${index}`'
-                class="px-6 py-3"
+                class="px-3 py-2 sm:px-6 sm:py-3"
                 @click="$emit('sort', column)"
             >
                 <a href="#" class="group inline-flex">

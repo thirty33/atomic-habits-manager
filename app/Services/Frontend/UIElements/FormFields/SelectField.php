@@ -16,6 +16,7 @@ class SelectField implements Contracts\Field
         protected string $placeholder = '',
         protected array $options = [],
         protected bool $disabled = false,
+        protected ?string $defaultValue = null,
     ) {}
 
     public function generate(): array
@@ -31,6 +32,7 @@ class SelectField implements Contracts\Field
                 'options' => $this->options,
                 'cssLabelClass' => self::CSS_LABEL_CLASS,
                 'cssFieldClass' => self::CSS_FIELD_CLASS,
+                'defaultValue' => $this->defaultValue,
             ],
         ];
     }

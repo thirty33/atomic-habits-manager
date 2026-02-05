@@ -14,9 +14,9 @@ defineProps({
 </script>
 
 <template>
-    <h2 class="text-2xl font-bold leading-7 text-white sm:truncate sm:text-3xl sm:tracking-tight">
+    <h2 class="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">
         {{ user?.name }}
-        <small class="text-sm text-gray-400">
+        <small class="text-sm text-gray-500 dark:text-gray-400">
             {{ user?.email }}
         </small>
     </h2>

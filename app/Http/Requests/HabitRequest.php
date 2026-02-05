@@ -44,7 +44,7 @@ class HabitRequest extends FormRequest
             'desire_type' => __('Importancia'),
             'implementation_intention' => __('Intencion de implementacion'),
             'location' => __('Ubicacion'),
-            'cue' => __('Senal'),
+            'cue' => __('Señal'),
             'reframe' => __('Motivacion positiva'),
             'is_active' => __('Activo'),
         ];

@@ -17,8 +17,7 @@ defineEmits(['removeToast'])
 <template>
     <div
         aria-live="assertive"
-        class="pointer-events-none inset-0 flex items-end px-4 sm:items-start"
-        style="min-width: 25em;"
+        class="pointer-events-none inset-0 flex items-end px-4 sm:items-start w-full"
     >
         <div class="flex w-full flex-col items-center sm:items-end">
             <div

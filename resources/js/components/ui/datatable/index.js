@@ -7,10 +7,11 @@ import AppDatatableRow from "./AppDatatableRow.vue";
 import AppDatatableNoData from "./AppDatatableNoData.vue";
 import AppDatatablePagination from "./AppDatatablePagination.vue";
 import AppDatatableFilter from "./AppDatatableFilter.vue";
+import AppDatatableCard from "./AppDatatableCard.vue";
 import AppDatatable from "./AppDatatable.vue";
 
 export {
     AppDatatablePaginationLinks, AppDatatablePaginationSummary, AppDatatableTable, AppDatatableHead,
     AppDatatableBody, AppDatatableRow, AppDatatableNoData, AppDatatablePagination, AppDatatable,
-    AppDatatableFilter,
+    AppDatatableFilter, AppDatatableCard,
 };

@@ -3,6 +3,8 @@
 namespace App\ViewModels\Backoffice\Habits;
 
 use App\Constants\Heroicons;
+use App\Enums\DesireType;
+use App\Enums\HabitNature;
 use App\Enums\Filters\HabitFilters;
 use App\Filters\FilterValue;
 use App\Http\Resources\HabitResource;
@@ -21,15 +23,22 @@ use App\Services\Frontend\UIElements\ColumnItems\ActionsColumn;
 use App\Services\Frontend\UIElements\ColumnItems\BooleanColumn;
 use App\Services\Frontend\UIElements\ColumnItems\DateColumn;
 use App\Services\Frontend\UIElements\ColumnItems\TextColumn;
+use App\Enums\RecurrenceType;
 use App\Services\Frontend\UIElements\FormFields\CheckboxField;
+use App\Services\Frontend\UIElements\FormFields\DaysOfWeekField;
+use App\Services\Frontend\UIElements\FormFields\DateField;
+use App\Services\Frontend\UIElements\FormFields\NumberField;
 use App\Services\Frontend\UIElements\FormFields\SearchField;
 use App\Services\Frontend\UIElements\FormFields\SelectField;
 use App\Services\Frontend\UIElements\FormFields\SelectOptions\BooleanOption;
 use App\Services\Frontend\UIElements\FormFields\SelectOptions\DesireTypeOption;
 use App\Services\Frontend\UIElements\FormFields\SelectOptions\HabitNatureOption;
+use App\Services\Frontend\UIElements\FormFields\SelectOptions\RecurrenceTypeOption;
 use App\Services\Frontend\UIElements\FormFields\TextField;
 use App\Services\Frontend\UIElements\FormFields\TextareaField;
+use App\Services\Frontend\UIElements\FormFields\TimeField;
 use App\Services\Frontend\UIElements\Modals\Modal;
+use App\Services\Frontend\UIElements\Modals\ModalStep;
 use App\Services\Frontend\UIElements\ResourceDetailLine;
 use App\Services\ViewModels\FilterService;
 use App\Traits\ViewModels\WithPerPage;
@@ -46,6 +55,7 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
     const PER_PAGE = 10;
 
     const ROUTE_BACKOFFICE_HABITS_STORE = 'backoffice.habits.store';
+    const ROUTE_BACKOFFICE_HABIT_SCHEDULES_STORE = 'backoffice.habit-schedules.store';
 
     public function __construct(
         private readonly Pipeline $pipeline,
@@ -215,6 +225,7 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
                     label: 'Que tipo de habito es?',
                     placeholder: 'Selecciona una opcion',
                     options: (new HabitNatureOption())->getOptions(),
+                    defaultValue: HabitNature::BUILD->value,
                 )
             )
             ->addField(
@@ -223,6 +234,7 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
                     label: 'Que tan importante es para ti?',
                     placeholder: 'Selecciona una opcion',
                     options: (new DesireTypeOption())->getOptions(),
+                    defaultValue: DesireType::WANT->value,
                 )
             )
             ->addField(
@@ -243,8 +255,8 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
             ->addField(
                 new TextField(
                     name: 'cue',
-                    label: 'Senal',
-                    placeholder: 'Senal que dispara el habito',
+                    label: 'Señal',
+                    placeholder: 'Señal que dispara el hábito',
                 )
             )
             ->addField(
@@ -259,7 +271,67 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
                 new CheckboxField(
                     name: 'is_active',
                     label: 'Esta activo?',
+                    defaultValue: true,
                 )
+            )
+            ->getFields();
+    }
+
+    protected function scheduleFormFields(): array
+    {
+        return app(FormFieldsGenerator::class)
+            ->addField(
+                new SelectField(
+                    name: 'recurrence_type',
+                    label: '¿Con qué frecuencia?',
+                    placeholder: 'Selecciona una opción',
+                    options: (new RecurrenceTypeOption())->getOptions(),
+                    defaultValue: RecurrenceType::DAILY->value,
+                )
+            )
+            ->addField(
+                new TimeField(
+                    name: 'start_time',
+                    label: 'Hora de inicio',
+                )
+            )
+            ->addField(
+                new TimeField(
+                    name: 'end_time',
+                    label: 'Hora de fin',
+                )
+            )
+            ->addField(
+                (new DaysOfWeekField(
+                    name: 'days_of_week',
+                    label: '¿Qué días?',
+                ))->visibleWhen(['recurrence_type' => 'weekly'])
+            )
+            ->addField(
+                (new NumberField(
+                    name: 'interval_days',
+                    label: '¿Cada cuántos días?',
+                    min: 1,
+                ))->visibleWhen(['recurrence_type' => 'every_n_days'])
+            )
+            ->addField(
+                (new DateField(
+                    name: 'specific_date',
+                    label: '¿Qué día?',
+                ))->visibleWhen(['recurrence_type' => 'none'])
+            )
+            ->addField(
+                (new DateField(
+                    name: 'starts_from',
+                    label: '¿Desde cuándo?',
+                    defaultValue: now()->toDateString(),
+                ))->visibleWhen(['recurrence_type' => ['daily', 'weekly', 'every_n_days']])
+            )
+            ->addField(
+                (new DateField(
+                    name: 'ends_at',
+                    label: '¿Hasta cuándo? (opcional)',
+                ))->visibleWhen(['recurrence_type' => ['daily', 'weekly', 'every_n_days']])
             )
             ->getFields();
     }
@@ -281,20 +353,14 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
             )
             ->addLine(
                 new ResourceDetailLine(
-                    columnName: 'color',
-                    label: 'Color',
-                )
-            )
-            ->addLine(
-                new ResourceDetailLine(
                     columnName: 'habit_nature_label',
-                    label: 'Naturaleza',
+                    label: 'Que tipo de habito es?',
                 )
             )
             ->addLine(
                 new ResourceDetailLine(
                     columnName: 'desire_type_label',
-                    label: 'Tipo de deseo',
+                    label: 'Que tan importante es para ti?',
                 )
             )
             ->addLine(
@@ -312,26 +378,20 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
             ->addLine(
                 new ResourceDetailLine(
                     columnName: 'cue',
-                    label: 'Senal',
+                    label: 'Señal',
                 )
             )
             ->addLine(
                 new ResourceDetailLine(
                     columnName: 'reframe',
-                    label: 'Reencuadre',
+                    label: 'Motivacion positiva',
                 )
             )
             ->addLine(
                 new ResourceDetailLine(
                     columnName: 'is_active',
-                    label: 'Activo',
+                    label: 'Esta activo?',
                     isBoolean: true,
-                )
-            )
-            ->addLine(
-                new ResourceDetailLine(
-                    columnName: 'created_at_iso_format_ll',
-                    label: 'Fecha de creacion',
                 )
             )
             ->getLines();
@@ -347,14 +407,30 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
                     new Modal(
                         type: ModalGenerator::MODAL_CREATE,
                         title: 'Crear habito',
-                        textSubmitButton: 'Crear',
-                        action: $this->formActionGenerator->setActionForm(
-                            new ActionForm(
-                                url: route(self::ROUTE_BACKOFFICE_HABITS_STORE),
-                                method: FormActionGenerator::HTTP_METHOD_POST,
-                            )
-                        )->getActionForm(),
-                        formFields: $formFields,
+                        steps: [
+                            new ModalStep(
+                                step: 1,
+                                title: 'Información del hábito',
+                                formFields: $formFields,
+                                action: new ActionForm(
+                                    url: route(self::ROUTE_BACKOFFICE_HABITS_STORE),
+                                    method: FormActionGenerator::HTTP_METHOD_POST,
+                                ),
+                                textSubmitButton: 'Siguiente',
+                            ),
+                            new ModalStep(
+                                step: 2,
+                                title: 'Programar hábito',
+                                formFields: $this->scheduleFormFields(),
+                                action: new ActionForm(
+                                    url: route(self::ROUTE_BACKOFFICE_HABIT_SCHEDULES_STORE),
+                                    method: FormActionGenerator::HTTP_METHOD_POST,
+                                ),
+                                textSubmitButton: 'Guardar programación',
+                                isOptional: true,
+                                textSkipButton: 'Omitir por ahora',
+                            ),
+                        ],
                     ),
                     new Modal(
                         type: ModalGenerator::MODAL_SHOW,

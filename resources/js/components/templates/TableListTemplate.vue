@@ -7,7 +7,7 @@ export default {
 <template>
     <div class="relative">
 
-        <div class="flex justify-end items-center">
+        <div class="flex justify-end items-center mb-3">
             <slot name="topActionButtons"></slot>
         </div>
 

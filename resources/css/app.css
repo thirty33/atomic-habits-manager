@@ -19,5 +19,17 @@
         --color-content-border: 229 231 235;     /* gray-200 */
         --color-content-bg: 255 255 255;         /* white */
         --color-text-muted: 107 114 128;         /* gray-500 */
+
+        /* Buttons */
+        --color-btn-primary: 37 99 235;          /* blue-600 */
+        --color-btn-primary-hover: 29 78 216;    /* blue-700 */
+        --color-btn-secondary: 107 114 128;      /* gray-500 */
+        --color-btn-secondary-hover: 75 85 99;   /* gray-600 */
+        --color-btn-info: 6 182 212;             /* cyan-500 */
+        --color-btn-info-hover: 8 145 178;       /* cyan-600 */
+        --color-btn-danger: 239 68 68;           /* red-500 */
+        --color-btn-danger-hover: 220 38 38;     /* red-600 */
+        --color-btn-success: 34 197 94;          /* green-500 */
+        --color-btn-success-hover: 22 163 74;    /* green-600 */
     }
 }

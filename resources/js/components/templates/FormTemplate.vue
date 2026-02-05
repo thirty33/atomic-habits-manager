@@ -31,7 +31,7 @@ defineEmits(['submit'])
         </h2>
         <form>
             <slot />
-            <div class="d-flex justify-content-end mt-3 mb-0 g-0">
+            <div class="flex justify-end mt-3">
                 <slot name="buttons">
                     <AppSubmitButton
                         :loading="loading"

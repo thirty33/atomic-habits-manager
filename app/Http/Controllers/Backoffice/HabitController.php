@@ -40,6 +40,7 @@ class HabitController extends Controller
             title: __('Habito creado'),
             message: __('El habito :name ha sido creado', ['name' => $habit->name]),
             timeout: 5000,
+            extra: ['habit_id' => $habit->habit_id],
         );
     }
 

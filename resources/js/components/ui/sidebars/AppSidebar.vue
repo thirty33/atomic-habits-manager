@@ -29,7 +29,7 @@ const sidebarOpen = ref(false);
 <template>
     <button
         type="button"
-        class="fixed top-3 left-3 z-50 inline-flex items-center p-2 text-sidebar-muted bg-transparent border border-transparent rounded-lg hover:bg-sidebar-hover focus:ring-4 focus:ring-sidebar-border text-sm focus:outline-none sm:hidden"
+        class="fixed top-3 left-3 z-50 inline-flex items-center p-2 text-sidebar-muted bg-transparent border border-transparent rounded-lg hover:bg-sidebar-hover focus:ring-4 focus:ring-sidebar-border text-sm focus:outline-none lg:hidden"
         @click="sidebarOpen = !sidebarOpen"
     >
         <span class="sr-only">Open sidebar</span>
@@ -40,7 +40,7 @@ const sidebarOpen = ref(false);
 
     <div
         v-if="sidebarOpen"
-        class="fixed inset-0 z-30 bg-black/50 sm:hidden"
+        class="fixed inset-0 z-30 bg-black/50 lg:hidden"
         @click="sidebarOpen = false"
     />
 
@@ -48,11 +48,11 @@ const sidebarOpen = ref(false);
         id="sidebar-multi-level-sidebar"
         :class="[
             'fixed top-0 left-0 z-40 w-64 h-screen transition-transform',
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         ]"
         aria-label="Sidebar"
     >
-        <div class="h-full px-3 py-4 pt-14 sm:pt-4 overflow-y-auto bg-sidebar-bg border-r border-sidebar-border">
+        <div class="h-full px-3 py-4 pt-14 lg:pt-4 overflow-y-auto bg-sidebar-bg border-r border-sidebar-border">
             <ul class="space-y-2 font-medium">
                 <component
                     v-for="(item, index) in sidebarNavItems"

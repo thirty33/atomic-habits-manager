@@ -45,10 +45,18 @@ const removeToast = inject('removeToast');
     position: fixed;
     top: 0;
     right: 0;
+    left: 0;
     padding: 1em;
     z-index: 1000;
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 1em;
+}
+
+@media (max-width: 640px) {
+    .toast-container {
+        align-items: stretch;
+    }
 }
 </style>
