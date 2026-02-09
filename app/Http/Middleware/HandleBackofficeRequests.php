@@ -13,14 +13,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 readonly class HandleBackofficeRequests
 {
-    public function __construct(protected readonly SidebarGenerator $sidebarGenerator)
-    {
-    }
+    public function __construct(protected readonly SidebarGenerator $sidebarGenerator) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         view()->share('sidebarNavItems', $this->sidebarGenerator
-            ->addSidebarItem(new SidebarHelloUser())
+            ->addSidebarItem(new SidebarHelloUser)
             ->addSidebarItem(
                 new SidebarLink(
                     text: 'Dashboard',
@@ -29,7 +27,7 @@ readonly class HandleBackofficeRequests
                     current: request()->routeIs('backoffice.dashboard.index'),
                 )
             )
-            ->addSidebarItem(new SidebarSeparator())
+            ->addSidebarItem(new SidebarSeparator)
             ->addSidebarItem(
                 new SidebarLink(
                     text: __('Habitos'),
@@ -38,7 +36,15 @@ readonly class HandleBackofficeRequests
                     current: request()->routeIs('backoffice.habits.index'),
                 )
             )
-            ->addSidebarItem(new SidebarSeparator())
+            ->addSidebarItem(
+                new SidebarLink(
+                    text: 'Atomic IA',
+                    href: route('backoffice.atomic-ia.index'),
+                    iconComponent: Heroicons::CHAT_BUBBLE,
+                    current: request()->routeIs('backoffice.atomic-ia.index'),
+                )
+            )
+            ->addSidebarItem(new SidebarSeparator)
             ->addSidebarItem(
                 new SidebarLink(
                     text: 'Cerrar sesión',

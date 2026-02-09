@@ -4,6 +4,9 @@ namespace App\Services\Frontend\UIElements\FormFields;
 
 class DateField implements Contracts\Field
 {
+    use Concerns\HasGridLayout;
+    use Concerns\HasRequiredIndicator;
+
     const COMPONENT = 'AppDateField';
 
     const CSS_LABEL_CLASS = 'block mb-2 text-sm font-medium text-gray-900 dark:text-white';
@@ -21,6 +24,7 @@ class DateField implements Contracts\Field
     public function visibleWhen(array $condition): static
     {
         $this->visibleWhen = $condition;
+
         return $this;
     }
 
@@ -29,6 +33,7 @@ class DateField implements Contracts\Field
         return array_filter([
             'uuid' => \Str::uuid(),
             'component' => self::COMPONENT,
+            ...$this->gridLayoutData(),
             'visible_when' => $this->visibleWhen,
             'props' => [
                 'name' => $this->name,
@@ -36,6 +41,7 @@ class DateField implements Contracts\Field
                 'cssFieldClass' => self::CSS_FIELD_CLASS,
                 'cssLabelClass' => self::CSS_LABEL_CLASS,
                 'defaultValue' => $this->defaultValue,
+                ...$this->requiredIndicatorProps(),
             ],
         ], fn ($v) => $v !== null);
     }

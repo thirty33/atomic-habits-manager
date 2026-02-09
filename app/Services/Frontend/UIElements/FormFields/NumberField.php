@@ -4,6 +4,9 @@ namespace App\Services\Frontend\UIElements\FormFields;
 
 class NumberField implements Contracts\Field
 {
+    use Concerns\HasGridLayout;
+    use Concerns\HasRequiredIndicator;
+
     const COMPONENT = 'AppNumberField';
 
     const CSS_LABEL_CLASS = 'block mb-2 text-sm font-medium text-gray-900 dark:text-white';
@@ -23,6 +26,7 @@ class NumberField implements Contracts\Field
     public function visibleWhen(array $condition): static
     {
         $this->visibleWhen = $condition;
+
         return $this;
     }
 
@@ -31,6 +35,7 @@ class NumberField implements Contracts\Field
         return array_filter([
             'uuid' => \Str::uuid(),
             'component' => self::COMPONENT,
+            ...$this->gridLayoutData(),
             'visible_when' => $this->visibleWhen,
             'props' => [
                 'name' => $this->name,
@@ -40,6 +45,7 @@ class NumberField implements Contracts\Field
                 'min' => $this->min,
                 'max' => $this->max,
                 'defaultValue' => $this->defaultValue,
+                ...$this->requiredIndicatorProps(),
             ],
         ], fn ($v) => $v !== null);
     }

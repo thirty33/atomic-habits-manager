@@ -4,6 +4,9 @@ namespace App\Services\Frontend\UIElements\FormFields;
 
 class CheckboxField implements Contracts\Field
 {
+    use Concerns\HasGridLayout;
+    use Concerns\HasRequiredIndicator;
+
     const COMPONENT = 'AppCheckboxField';
 
     const CSS_FIELD_CLASS = 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600';
@@ -19,16 +22,18 @@ class CheckboxField implements Contracts\Field
 
     public function generate(): array
     {
-        return [
+        return array_filter([
             'uuid' => \Str::uuid(),
             'component' => self::COMPONENT,
+            ...$this->gridLayoutData(),
             'props' => [
                 'name' => $this->name,
                 'label' => __($this->label),
                 'cssFieldClass' => self::CSS_FIELD_CLASS,
                 'cssLabelClass' => self::CSS_LABEL_CLASS,
                 'defaultValue' => $this->defaultValue,
+                ...$this->requiredIndicatorProps(),
             ],
-        ];
+        ], fn ($v) => $v !== null);
     }
 }

@@ -8,12 +8,17 @@ export default {
 import { ref, reactive, computed, inject } from "vue";
 import useComponentsLoader from "@/composables/useComponentsLoader.js";
 import useAxios from "@/composables/useAxios.js";
+import useGridLayout from "@/composables/useGridLayout.js";
 import { AppSubmitButton } from '@/components/ui/forms/buttons';
 
 const props = defineProps({
     steps: {
         type: Array,
         required: true,
+    },
+    model: {
+        type: Object,
+        default: null,
     },
 });
 
@@ -23,12 +28,15 @@ const addSuccessToast = inject("addSuccessToast");
 const addErrorToast = inject("addErrorToast");
 
 const { findComponentByName, components, formFieldsLoader } = useComponentsLoader();
+const { gridClass } = useGridLayout();
 
 const currentStepIndex = ref(0);
 const isSubmitting = ref(false);
 const errors = ref({});
 const submitted = ref(false);
 const createdData = reactive({});
+
+const isEditMode = computed(() => !!props.model);
 
 const currentStep = computed(() => props.steps[currentStepIndex.value]);
 
@@ -37,10 +45,22 @@ const loadedComponents = computed(() => components(allFormFields.value, formFiel
 
 const form = reactive({});
 
+const getModelDataForStep = (stepIndex) => {
+    if (!props.model) return null;
+    const key = props.steps[stepIndex].model_data_key;
+    return key ? props.model[key] : props.model;
+};
+
 const initFormForStep = (stepIndex) => {
     Object.keys(form).forEach(key => delete form[key]);
+    const modelData = getModelDataForStep(stepIndex);
+
     props.steps[stepIndex].form_fields.forEach((field) => {
         const fieldName = field.props?.name;
+        if (modelData && modelData[fieldName] !== undefined && modelData[fieldName] !== null) {
+            form[fieldName] = modelData[fieldName];
+            return;
+        }
         if (typeof field.props?.defaultValue !== "undefined") {
             form[fieldName] = field.props.defaultValue;
             return;
@@ -48,6 +68,11 @@ const initFormForStep = (stepIndex) => {
         form[fieldName] = "";
     });
 };
+
+// Pre-initialize createdData with model PK in edit mode
+if (props.model) {
+    createdData[props.model.pk_name] = props.model[props.model.pk_name];
+}
 
 initFormForStep(0);
 
@@ -74,6 +99,31 @@ const cssClassFor = (field) => {
     return '';
 };
 
+const getStepAction = () => {
+    if (isEditMode.value && currentStepIndex.value === 0) {
+        return {
+            method: 'post',
+            url: props.model.update_action.url,
+        };
+    }
+
+    // In edit mode, step 2 with existing schedule uses its update_action
+    if (isEditMode.value && currentStepIndex.value > 0) {
+        const modelData = getModelDataForStep(currentStepIndex.value);
+        if (modelData?.update_action) {
+            return {
+                method: 'post',
+                url: modelData.update_action.url,
+            };
+        }
+    }
+
+    return {
+        method: currentStep.value.action.method.toLowerCase(),
+        url: currentStep.value.action.url,
+    };
+};
+
 const advanceOrFinish = () => {
     if (currentStepIndex.value >= props.steps.length - 1) {
         emit("processed");
@@ -97,9 +147,25 @@ const submitStep = async () => {
             requestData[key] = createdData[key];
         });
 
+        // In edit mode, step 1 needs _method PUT and the PK
+        if (isEditMode.value && currentStepIndex.value === 0) {
+            requestData['_method'] = 'PUT';
+            requestData[props.model.pk_name] = props.model[props.model.pk_name];
+        }
+
+        // In edit mode, step 2+ with existing data needs _method PUT
+        if (isEditMode.value && currentStepIndex.value > 0) {
+            const modelData = getModelDataForStep(currentStepIndex.value);
+            if (modelData?.update_action) {
+                requestData['_method'] = 'PUT';
+            }
+        }
+
+        const action = getStepAction();
+
         const { data } = await makeRequest({
-            method: currentStep.value.action.method.toLowerCase(),
-            url: currentStep.value.action.url,
+            method: action.method,
+            url: action.url,
             data: requestData,
         });
 
@@ -158,7 +224,8 @@ const skipStep = () => {
         </h2>
 
         <form @submit.prevent="submitStep">
-            <div v-for="field in visibleFields" :key="field.uuid" class="mb-2">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-x-6 gap-y-2">
+            <div v-for="field in visibleFields" :key="field.uuid" :class="gridClass(field)">
                 <component
                     :is="findComponentByName(field.component, loadedComponents)"
                     v-bind="field.props"
@@ -168,6 +235,7 @@ const skipStep = () => {
                     @update:model-value="form[field.props.name] = $event"
                 />
             </div>
+          </div>
 
             <div class="flex justify-between items-center mt-3">
                 <button

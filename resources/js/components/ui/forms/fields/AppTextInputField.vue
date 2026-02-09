@@ -37,6 +37,14 @@ defineProps({
     cssClass: String,
     cssLabelClass: String,
     cssFieldClass: String,
+    maxLength: {
+        type: Number,
+        default: null,
+    },
+    isRequired: {
+        type: Boolean,
+        default: false,
+    },
     error: {
         type: String,
         default: null,
@@ -51,7 +59,7 @@ defineEmits(['update:modelValue'])
         :for="name"
         :class="cssLabelClass"
     >
-        {{ label }}
+        {{ label }}<span v-if="isRequired" class="text-red-500 ml-0.5">*</span>
     </label>
 
     <div class="mt-1 relative rounded-md shadow-sm">
@@ -63,6 +71,7 @@ defineEmits(['update:modelValue'])
             :autocomplete="autocomplete"
             :readonly="readonly"
             :disabled="disabled"
+            :maxlength="maxLength"
             :class="[cssClass, cssFieldClass]"
             @input="$emit('update:modelValue', $event.target.value)"
         />

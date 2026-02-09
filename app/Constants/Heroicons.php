@@ -22,5 +22,7 @@ final class Heroicons
 
     public const BOOK_OPEN = 'BookOpenIcon';
 
+    public const CHAT_BUBBLE = 'ChatBubbleLeftRightIcon';
+
     public const LOGOUT = 'ArrowRightOnRectangleIcon';
 }

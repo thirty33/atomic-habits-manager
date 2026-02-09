@@ -10,6 +10,10 @@ defineProps({
         type: Boolean,
         default: false,
     },
+    maxWidthClass: {
+        type: String,
+        default: 'max-w-2xl',
+    },
 })
 
 defineEmits(['close'])
@@ -19,7 +23,7 @@ defineEmits(['close'])
     <div class="relative bg-white rounded-lg shadow text-white dark:bg-gray-700" v-show="opened">
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 sm:items-center sm:p-0">
-                <div class="relative p-4 w-full max-w-2xl max-h-full">
+                <div :class="['relative p-4 w-full max-h-full', maxWidthClass]">
                     <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
                         <div class="absolute right-0 top-0 pr-4 pt-4">
                             <button

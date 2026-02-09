@@ -16,7 +16,7 @@ defineEmits(['actionDispatched'])
 </script>
 
 <template>
-    <td class="text-sm font-medium text-white px-6 py-4">
+    <td class="text-sm font-medium text-white px-6 py-4 flex flex-wrap gap-1 items-center">
         <button
             v-for="(action, index) in actions"
             :key="`table-action-${index}`"

@@ -9,5 +9,9 @@ Route::jsonGroup('habits', \App\Http\Controllers\Backoffice\HabitController::cla
 ]);
 
 Route::jsonGroup('habit-schedules', \App\Http\Controllers\Backoffice\HabitScheduleController::class, [
-    'store',
+    'store', 'update',
+]);
+
+Route::jsonGroup('atomic-ia', \App\Http\Controllers\Backoffice\AtomicIAController::class, [
+    'index', 'json',
 ]);

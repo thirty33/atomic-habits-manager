@@ -14,6 +14,7 @@ class ModalStep
         public readonly string $textSubmitButton = 'Siguiente',
         public readonly bool $isOptional = false,
         public readonly ?string $textSkipButton = null,
+        public readonly ?string $modelDataKey = null,
     ) {}
 
     public function toArray(): array
@@ -26,6 +27,7 @@ class ModalStep
             'text_submit_button' => $this->textSubmitButton,
             'is_optional' => $this->isOptional,
             'text_skip_button' => $this->textSkipButton,
+            'model_data_key' => $this->modelDataKey,
         ];
     }
 }

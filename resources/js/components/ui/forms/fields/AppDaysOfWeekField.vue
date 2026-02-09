@@ -26,6 +26,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    isRequired: {
+        type: Boolean,
+        default: false,
+    },
     error: {
         type: String,
         default: null,
@@ -68,7 +72,7 @@ const isSelected = (dayValue) => {
 
 <template>
     <div>
-        <label :class="cssLabelClass">{{ label }}</label>
+        <label :class="cssLabelClass">{{ label }}<span v-if="isRequired" class="text-red-500 ml-0.5">*</span></label>
         <div class="flex flex-wrap gap-2 mt-2">
             <button
                 v-for="day in days"

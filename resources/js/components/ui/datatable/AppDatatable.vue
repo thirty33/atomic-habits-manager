@@ -63,7 +63,15 @@ const loadedComponents = components(props.columns, columnsLoader);
                     >
                         <template v-for="column in columns">
                             <component
-                                v-if="!column.actions"
+                                v-if="column.is_compound"
+                                :key="`table-compound-${column.key}-${rowIndex}`"
+                                :is="findComponentByName(column.component, loadedComponents)"
+                                :column="column"
+                                :data="row[column.data_key]"
+                            />
+
+                            <component
+                                v-else-if="!column.actions"
                                 :key="`table-column-${column.key}-${rowIndex}`"
                                 :is="findComponentByName(column.component, loadedComponents)"
                                 :column="column"

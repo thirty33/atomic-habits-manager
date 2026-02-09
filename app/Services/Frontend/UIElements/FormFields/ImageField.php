@@ -4,6 +4,9 @@ namespace App\Services\Frontend\UIElements\FormFields;
 
 class ImageField implements Contracts\Field
 {
+    use Concerns\HasGridLayout;
+    use Concerns\HasRequiredIndicator;
+
     const COMPONENT = 'AppImageField';
 
     const CSS_LABEL_CLASS = 'block mb-2 text-sm font-medium text-gray-900 dark:text-white';
@@ -21,9 +24,10 @@ class ImageField implements Contracts\Field
 
     public function generate(): array
     {
-        return [
+        return array_filter([
             'uuid' => \Str::uuid(),
             'component' => self::COMPONENT,
+            ...$this->gridLayoutData(),
             'props' => [
                 'name' => $this->name,
                 'label' => __($this->label),
@@ -32,7 +36,8 @@ class ImageField implements Contracts\Field
                 'cssFieldClass' => self::CSS_FIELD_CLASS,
                 'cssLabelClass' => self::CSS_LABEL_CLASS,
                 'cssHelpClass' => self::CSS_HELP_CLASS,
+                ...$this->requiredIndicatorProps(),
             ],
-        ];
+        ], fn ($v) => $v !== null);
     }
 }

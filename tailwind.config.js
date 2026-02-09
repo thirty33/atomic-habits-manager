@@ -9,6 +9,7 @@ export default {
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
         './resources/js/**/*.vue',
+        './resources/js/**/*.js',
         './app/ViewModels/**/*.php',
         './app/Services/Frontend/**/*.php',
         './node_modules/flowbite/**/*.js',

@@ -5,6 +5,7 @@ const AppToastProvider = defineAsyncComponent(() => import('@/providers/AppToast
 const BackofficeLayout = defineAsyncComponent(() => import('@/layouts/BackofficeLayout.vue'));
 const DashboardPage = defineAsyncComponent(() => import('@/pages/backoffice/dashboard/DashboardPage.vue'));
 const DatatablePage = defineAsyncComponent(() => import('@/pages/backoffice/DatatablePage.vue'));
+const AtomicIaChatPage = defineAsyncComponent(() => import('@/pages/backoffice/AtomicIAChatPage.vue'));
 
 export default {
     name: 'App',
@@ -13,6 +14,7 @@ export default {
         BackofficeLayout,
         DashboardPage,
         DatatablePage,
+        AtomicIaChatPage,
     },
     setup() {
         return {

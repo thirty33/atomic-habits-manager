@@ -99,6 +99,7 @@ const modalComponents = {
                     <template v-slot:modals>
                         <AppModal
                             :opened="!!modalAction"
+                            :max-width-class="data.modals[modalAction]?.max_width"
                             @close="closeModal(() => {})"
                         >
                             <template v-slot:content>

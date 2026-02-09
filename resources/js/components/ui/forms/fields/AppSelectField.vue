@@ -23,6 +23,10 @@ defineProps({
     cssClass: String,
     cssLabelClass: String,
     cssFieldClass: String,
+    isRequired: {
+        type: Boolean,
+        default: false,
+    },
     error: {
         type: String,
         default: null,
@@ -38,7 +42,7 @@ defineEmits(['update:modelValue'])
             :for="name"
             :class="cssLabelClass"
         >
-            {{ label }}
+            {{ label }}<span v-if="isRequired" class="text-red-500 ml-0.5">*</span>
         </label>
 
         <select

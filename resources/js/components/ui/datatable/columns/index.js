@@ -6,9 +6,10 @@ import AppDatatableStatusColumn from "./AppDatatableStatusColumn.vue";
 import AppDatatableImageColumn from "./AppDatatableImageColumn.vue";
 import AppDatatableBadgeColumn from "./AppDatatableBadgeColumn.vue";
 import AppDatatableActionsColumn from "./AppDatatableActionsColumn.vue";
+import AppDatatableScheduleCompoundColumn from "./AppDatatableScheduleCompoundColumn.vue";
 
 export {
     AppDatatableTextColumn, AppDatatableDateColumn, AppDatatableEmailColumn,
     AppDatatableBooleanColumn, AppDatatableActionsColumn, AppDatatableStatusColumn,
-    AppDatatableImageColumn, AppDatatableBadgeColumn,
+    AppDatatableImageColumn, AppDatatableBadgeColumn, AppDatatableScheduleCompoundColumn,
 };

@@ -29,6 +29,14 @@ const props = defineProps({
         default: false,
     },
     cssFieldClass: String,
+    maxLength: {
+        type: Number,
+        default: null,
+    },
+    isRequired: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -67,6 +75,7 @@ const clearIfEmpty = e => {
             :class="cssFieldClass"
             :placeholder="placeholder"
             :value="modelValue"
+            :maxlength="maxLength"
             @change="updateSearch"
             @input="clearIfEmpty"
         />

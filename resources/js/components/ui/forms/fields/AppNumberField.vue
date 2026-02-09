@@ -30,6 +30,10 @@ const props = defineProps({
         type: Number,
         default: null,
     },
+    isRequired: {
+        type: Boolean,
+        default: false,
+    },
     error: {
         type: String,
         default: null,
@@ -45,7 +49,7 @@ const currentValue = computed(() => {
 
 <template>
     <div>
-        <label :for="name" :class="cssLabelClass">{{ label }}</label>
+        <label :for="name" :class="cssLabelClass">{{ label }}<span v-if="isRequired" class="text-red-500 ml-0.5">*</span></label>
         <input
             :id="name"
             :name="name"

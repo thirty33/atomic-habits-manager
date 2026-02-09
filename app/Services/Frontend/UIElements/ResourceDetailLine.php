@@ -2,17 +2,19 @@
 
 namespace App\Services\Frontend\UIElements;
 
+use App\Services\Frontend\UIElements\FormFields\Concerns\HasGridLayout;
 use Exception;
 
 final class ResourceDetailLine
 {
+    use HasGridLayout;
+
     public function __construct(
         protected readonly string $columnName,
         protected readonly ?string $label = null,
         protected readonly ?string $icon = null,
         protected readonly bool $isBoolean = false,
-    )
-    {}
+    ) {}
 
     /**
      * @throws Exception
@@ -28,6 +30,7 @@ final class ResourceDetailLine
             'icon' => $this->icon,
             'label' => __($this->label),
             'is_boolean' => $this->isBoolean,
+            ...$this->gridLayoutData(),
         ], fn ($value) => $value !== null);
     }
 }

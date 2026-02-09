@@ -37,6 +37,10 @@ defineProps({
     cssFieldClass: String,
     cssLabelClass: String,
     cssHelpClass: String,
+    isRequired: {
+        type: Boolean,
+        default: false,
+    },
     error: {
         type: String,
         default: null,
@@ -58,7 +62,7 @@ const onSelectedFile = e => {
         :for="name"
         :class="cssLabelClass"
     >
-        {{ label }}
+        {{ label }}<span v-if="isRequired" class="text-red-500 ml-0.5">*</span>
     </label>
 
     <div class="mt-1 relative rounded-md shadow-sm">

@@ -2,6 +2,8 @@
 
 namespace App\Models\Base;
 
+use App\Casts\DateCast;
+use App\Casts\TimeCast;
 use Illuminate\Database\Eloquent\Model;
 
 class HabitSchedule extends Model
@@ -26,9 +28,12 @@ class HabitSchedule extends Model
     ];
 
     protected $casts = [
+        'start_time' => TimeCast::class,
+        'end_time' => TimeCast::class,
         'days_of_week' => 'array',
-        'starts_from' => 'date',
-        'ends_at' => 'date',
+        'specific_date' => DateCast::class,
+        'starts_from' => DateCast::class,
+        'ends_at' => DateCast::class,
         'is_active' => 'boolean',
     ];
 }

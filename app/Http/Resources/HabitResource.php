@@ -20,7 +20,7 @@ class HabitResource extends JsonResource
     public function __construct($resource)
     {
         parent::__construct($resource);
-        $this->formActionGenerator = new FormActionGenerator();
+        $this->formActionGenerator = new FormActionGenerator;
     }
 
     public function toArray(Request $request): array
@@ -54,6 +54,11 @@ class HabitResource extends JsonResource
                     method: FormActionGenerator::HTTP_METHOD_DELETE,
                 )
             )->getActionForm(),
+            'active_schedule' => $this->whenLoaded('schedules', function () {
+                $schedule = $this->schedules->where('is_active', true)->first();
+
+                return $schedule ? new HabitScheduleResource($schedule) : null;
+            }),
         ];
     }
 }
