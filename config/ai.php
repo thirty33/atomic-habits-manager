@@ -15,7 +15,8 @@ return [
     |
     */
 
-    'default' => 'openai',
+    'default' => env('AI_PROVIDER', 'openai'),
+    'model' => env('AI_MODEL', 'gpt-4o'),
     'default_for_images' => 'gemini',
     'default_for_audio' => 'openai',
     'default_for_transcription' => 'openai',

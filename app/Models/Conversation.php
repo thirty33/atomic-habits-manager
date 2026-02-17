@@ -20,6 +20,6 @@ class Conversation extends Base\Conversation
 
     public function latestMessage(): HasOne
     {
-        return $this->hasOne(Message::class, 'conversation_id', 'conversation_id')->latestOfMany();
+        return $this->hasOne(Message::class, 'conversation_id', 'conversation_id')->latestOfMany('message_id');
     }
 }
