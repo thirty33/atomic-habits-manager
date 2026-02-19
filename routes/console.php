@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('atomic-ia:process')->everyMinute()->withoutOverlapping();
+Schedule::command('atomic-ia:moderate')->everyMinute()->withoutOverlapping();

@@ -3,6 +3,7 @@
 namespace App\Models\Base;
 
 use App\Enums\MessageRole;
+use App\Enums\MessageStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class Message extends Model
@@ -21,8 +22,12 @@ class Message extends Model
         'metadata',
     ];
 
-    protected $casts = [
-        'role' => MessageRole::class,
-        'metadata' => 'array',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'role' => MessageRole::class,
+            'status' => MessageStatus::class,
+            'metadata' => 'array',
+        ];
+    }
 }

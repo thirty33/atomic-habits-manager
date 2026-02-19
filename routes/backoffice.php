@@ -15,3 +15,6 @@ Route::jsonGroup('habit-schedules', \App\Http\Controllers\Backoffice\HabitSchedu
 Route::jsonGroup('atomic-ia', \App\Http\Controllers\Backoffice\AtomicIAController::class, [
     'index', 'json', 'store',
 ]);
+
+Route::post('atomic-ia/conversations', [\App\Http\Controllers\Backoffice\AtomicIAController::class, 'newConversation'])
+    ->name('atomic-ia.new-conversation');

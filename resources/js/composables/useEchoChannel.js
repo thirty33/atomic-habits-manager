@@ -1,13 +1,15 @@
 import { onUnmounted } from 'vue';
 
-export default function (channelName, eventName, callback) {
+export default function (channelName, listeners) {
     let activeChannel = null;
 
     const subscribe = (name) => {
         unsubscribe();
         activeChannel = name;
-        window.Echo.private(name)
-            .listen(eventName, callback);
+        const channel = window.Echo.private(name);
+        for (const { event, callback } of listeners) {
+            channel.listen(event, callback);
+        }
     };
 
     const unsubscribe = () => {

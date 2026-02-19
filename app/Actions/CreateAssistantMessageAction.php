@@ -3,7 +3,7 @@
 namespace App\Actions;
 
 use App\Enums\MessageRole;
-use App\Events\MessageSent;
+use App\Enums\MessageStatus;
 use App\Models\Conversation;
 use App\Models\Message;
 
@@ -15,12 +15,10 @@ final class CreateAssistantMessageAction
             'role' => MessageRole::Assistant,
             'type' => 'text',
             'body' => $body,
-            'status' => 'sent',
+            'status' => MessageStatus::Pending,
         ]);
 
         $conversation->update(['last_message_at' => now()]);
-
-        MessageSent::dispatch($conversation, $message);
 
         return $message;
     }

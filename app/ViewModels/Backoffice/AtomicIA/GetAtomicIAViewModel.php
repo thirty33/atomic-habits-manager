@@ -4,6 +4,7 @@ namespace App\ViewModels\Backoffice\AtomicIA;
 
 use App\Http\Resources\ConversationResource;
 use App\Models\Conversation;
+use App\Repositories\ConversationRepository;
 use App\Services\ViewModels\FilterService;
 use App\ViewModels\ViewModel;
 use Illuminate\Pipeline\Pipeline;
@@ -13,6 +14,7 @@ class GetAtomicIAViewModel extends ViewModel
     public function __construct(
         private readonly Pipeline $pipeline,
         private readonly FilterService $filterService,
+        private readonly ConversationRepository $conversationRepository,
     ) {}
 
     public function pageTitle(): string
@@ -22,26 +24,41 @@ class GetAtomicIAViewModel extends ViewModel
 
     public function storeUrl(): string
     {
-        return route('backoffice.atomic-ia.store');
+        $conversation = $this->resolveConversation();
+
+        return $conversation
+            ? route('backoffice.atomic-ia.store', ['conversation_id' => $conversation->conversation_id])
+            : '';
     }
 
-    protected function conversationFilters(): array
+    public function newConversationUrl(): string
     {
-        return [];
+        return route('backoffice.atomic-ia.new-conversation');
     }
 
     public function conversation(): ?ConversationResource
     {
-        $query = $this->pipeline
-            ->send(Conversation::query()->where('user_id', auth()->id())->with(['messages' => fn ($q) => $q->orderBy('created_at')]))
-            ->through(
-                collect($this->conversationFilters())
-                    ->values()
-                    ->all()
-            )->thenReturn();
-
-        $conversation = $query->latest('last_message_at')->first();
+        $conversation = $this->resolveConversation();
 
         return $conversation ? new ConversationResource($conversation) : null;
+    }
+
+    public function conversations(): array
+    {
+        return ConversationResource::collection(
+            $this->conversationRepository->getAllByUserWithLatestMessage(auth()->id())
+        )->resolve();
+    }
+
+    private function resolveConversation(): ?Conversation
+    {
+        $filters = $this->filterService->generateNormalFilter(key: 'conversation_id');
+        $conversationId = $filters['conversation_id'];
+
+        if ($conversationId) {
+            return $this->conversationRepository->getByIdAndUser((int) $conversationId, auth()->id());
+        }
+
+        return $this->conversationRepository->getLatestActiveByUserWithMessages(auth()->id());
     }
 }

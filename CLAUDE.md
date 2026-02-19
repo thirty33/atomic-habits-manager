@@ -12,12 +12,14 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - php - 8.5.2
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0
+- laravel/reverb (REVERB) - v1
 - laravel/breeze (BREEZE) - v2
 - laravel/dusk (DUSK) - v8
 - laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
 - phpunit/phpunit (PHPUNIT) - v11
+- laravel-echo (ECHO) - v2
 - vue (VUE) - v3
 - alpinejs (ALPINEJS) - v3
 - tailwindcss (TAILWINDCSS) - v3
