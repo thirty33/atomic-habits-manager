@@ -2,8 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Enums\DesireType;
-use App\Enums\HabitNature;
 use App\Models\Habit;
 use App\Services\Frontend\FormActionGenerator;
 use App\Services\Frontend\UIElements\ActionForm;
@@ -31,10 +29,10 @@ class HabitResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'color' => $this->color,
-            'habit_nature' => $this->habit_nature,
-            'habit_nature_label' => __(HabitNature::from($this->habit_nature)->label()),
-            'desire_type' => $this->desire_type,
-            'desire_type_label' => __(DesireType::from($this->desire_type)->label()),
+            'habit_nature' => $this->habit_nature->value,
+            'habit_nature_label' => __($this->habit_nature->label()),
+            'desire_type' => $this->desire_type->value,
+            'desire_type_label' => __($this->desire_type->label()),
             'implementation_intention' => $this->implementation_intention,
             'location' => $this->location,
             'cue' => $this->cue,

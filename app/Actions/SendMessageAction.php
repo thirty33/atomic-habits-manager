@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Enums\MessageRole;
+use App\Enums\MessageStatus;
 use App\Models\Conversation;
 use App\Models\Message;
 
@@ -14,7 +15,7 @@ final class SendMessageAction
             'role' => MessageRole::User,
             'type' => 'text',
             'body' => data_get($data, 'body'),
-            'status' => 'sent',
+            'status' => MessageStatus::Sent,
         ]);
 
         $conversation->update(['last_message_at' => now()]);

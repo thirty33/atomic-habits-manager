@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Actions\CreateFallbackMessageAction;
+use App\Enums\ConversationStatus;
 use App\Enums\MessageRole;
 use App\Enums\MessageStatus;
 use App\Events\MessageSent;
@@ -14,6 +15,10 @@ class MessageObserver
     public function created(Message $message): void
     {
         if ($message->role !== MessageRole::User) {
+            return;
+        }
+
+        if ($message->conversation->status !== ConversationStatus::Active) {
             return;
         }
 

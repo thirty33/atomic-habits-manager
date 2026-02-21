@@ -2,8 +2,11 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Strategies\HabitListStrategy;
 use App\Ai\Tools\GreetTool;
+use App\Ai\Tools\ListResourceTool;
 use App\Models\Conversation;
+use App\Repositories\HabitRepository;
 use Closure;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Agent;
@@ -81,8 +84,9 @@ class AtomicIAAgent implements Agent, Conversational, HasMiddleware, HasTools
 
         ## Capacidades actuales
         - Saludar al usuario de forma personalizada
-        - Responder preguntas básicas sobre hábitos atómicos
-        - Informar amablemente que estás en desarrollo si preguntan algo fuera de tu alcance
+        - Consultar los hábitos del usuario: ver la lista con su estado, naturaleza e importancia
+        - Responder preguntas sobre hábitos atómicos basándose en los datos del usuario
+        - Informar amablemente que estás en desarrollo para funciones que aún no tienes
 
         ## Reglas de comportamiento
         - Responde siempre en español, sin excepciones
@@ -111,6 +115,9 @@ class AtomicIAAgent implements Agent, Conversational, HasMiddleware, HasTools
     {
         return [
             new GreetTool,
+            new ListResourceTool(
+                new HabitListStrategy(app(HabitRepository::class)),
+            ),
         ];
     }
 }

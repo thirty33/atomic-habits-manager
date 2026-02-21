@@ -15,6 +15,13 @@ use Illuminate\View\View;
 
 class AtomicIAController extends Controller
 {
+    public static function middleware(): array
+    {
+        return [
+            new \Illuminate\Routing\Controllers\Middleware('throttle:atomic-ia', only: ['store', 'newConversation']),
+        ];
+    }
+
     public function index(): View
     {
         return view('backoffice.atomic-ia.index', [
