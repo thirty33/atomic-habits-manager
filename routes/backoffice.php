@@ -18,3 +18,6 @@ Route::jsonGroup('atomic-ia', \App\Http\Controllers\Backoffice\AtomicIAControlle
 
 Route::post('atomic-ia/conversations', [\App\Http\Controllers\Backoffice\AtomicIAController::class, 'newConversation'])
     ->name('atomic-ia.new-conversation');
+
+Route::delete('atomic-ia/conversations/{id}', [\App\Http\Controllers\Backoffice\AtomicIAController::class, 'destroyConversation'])
+    ->name('atomic-ia.conversations.destroy');

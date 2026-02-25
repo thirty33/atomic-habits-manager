@@ -21,7 +21,7 @@ final class CreateHabitAction implements CreateAction
             'location' => data_get($data, 'location'),
             'cue' => data_get($data, 'cue'),
             'reframe' => data_get($data, 'reframe'),
-            'is_active' => data_get($data, 'is_active', false),
+            'is_active' => data_get($data, 'is_active', true),
         ]);
     }
 }

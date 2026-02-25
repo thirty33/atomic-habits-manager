@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backoffice;
 
 use App\Actions\Conversations\CreateConversationAction;
+use App\Actions\Conversations\DeleteConversationAction;
 use App\Actions\SendMessageAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
@@ -56,6 +57,14 @@ class AtomicIAController extends Controller
 
         return response()->json([
             'conversation' => new ConversationResource($conversation),
+            'store_url' => route('backoffice.atomic-ia.store', ['conversation_id' => $conversation->conversation_id]),
         ]);
+    }
+
+    public function destroyConversation(int $id): JsonResponse
+    {
+        DeleteConversationAction::execute($id);
+
+        return response()->json(['message' => 'Conversación eliminada.']);
     }
 }

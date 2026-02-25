@@ -24,6 +24,10 @@ class ConversationResource extends JsonResource
                 fn () => Str::limit($this->latestMessage?->body, 60)
             ),
             'messages' => MessageResource::collection($this->whenLoaded('messages')),
+            'delete_action' => [
+                'url' => route('backoffice.atomic-ia.conversations.destroy', $this->conversation_id),
+                'method' => 'delete',
+            ],
         ];
     }
 }

@@ -10,6 +10,8 @@ import DataProvider from '@/providers/DataProvider.js';
 import useDataProvider from '@/composables/useDataProvider.js';
 import useAxios from '@/composables/useAxios.js';
 import useEchoChannel from '@/composables/useEchoChannel.js';
+import { AppModal } from '@/components/ui';
+import { AppRemover } from '@/components/common';
 
 defineProps({
     jsonUrl: {
@@ -28,9 +30,12 @@ const newMessage = ref('');
 const messagesContainer = ref(null);
 const isSending = ref(false);
 const isCreatingConversation = ref(false);
+const isThinking = ref(false);
 const storeUrl = ref('');
 const newConversationUrl = ref('');
 const selectedConversationId = ref(null);
+const showDeleteModal = ref(false);
+const conversationToDelete = ref(null);
 
 const isBanned = computed(() => conversation.value?.status === 'banned');
 
@@ -38,6 +43,7 @@ const { subscribe } = useEchoChannel(null, [
     {
         event: '.message-sent',
         callback: (e) => {
+            isThinking.value = false;
             messages.value.push(e.message);
             scrollToBottom();
         },
@@ -76,6 +82,7 @@ const selectConversation = (conv) => {
     if (conv.conversation_id === conversation.value?.conversation_id) {
         return;
     }
+    isThinking.value = false;
     selectedConversationId.value = conv.conversation_id;
     updateDataProvider();
 };
@@ -85,16 +92,45 @@ const createNewConversation = async () => {
         return;
     }
     isCreatingConversation.value = true;
+    isThinking.value = false;
     try {
         const { data } = await makeRequest({
             method: 'post',
             url: newConversationUrl.value,
         });
-        selectedConversationId.value = data.conversation.conversation_id;
-        updateDataProvider();
+        const newConv = data.conversation;
+        conversation.value = newConv;
+        messages.value = [];
+        conversations.value.unshift(newConv);
+        selectedConversationId.value = newConv.conversation_id;
+        storeUrl.value = data.store_url;
+        subscribe(`conversation.${newConv.conversation_id}`);
     } finally {
         isCreatingConversation.value = false;
     }
+};
+
+const openDeleteModal = (conv, event) => {
+    event.stopPropagation();
+    conversationToDelete.value = conv;
+    showDeleteModal.value = true;
+};
+
+const onConversationDeleted = () => {
+    showDeleteModal.value = false;
+    const deletedId = conversationToDelete.value.conversation_id;
+    conversations.value = conversations.value.filter(c => c.conversation_id !== deletedId);
+    if (conversation.value?.conversation_id === deletedId) {
+        conversation.value = conversations.value[0] ?? null;
+        messages.value = [];
+        storeUrl.value = '';
+        isThinking.value = false;
+        selectedConversationId.value = conversation.value?.conversation_id ?? null;
+        if (conversation.value) {
+            updateDataProvider();
+        }
+    }
+    conversationToDelete.value = null;
 };
 
 const scrollToBottom = () => {
@@ -109,6 +145,13 @@ const sendMessage = async () => {
     const text = newMessage.value.trim();
     if (!text || isSending.value) {
         return;
+    }
+
+    if (!storeUrl.value) {
+        await createNewConversation();
+        if (!storeUrl.value) {
+            return;
+        }
     }
 
     const tempMessage = {
@@ -135,6 +178,8 @@ const sendMessage = async () => {
         if (index !== -1) {
             messages.value[index] = data.message;
         }
+        isThinking.value = true;
+        scrollToBottom();
     } catch (error) {
         const index = messages.value.findIndex(m => m.message_id === tempMessage.message_id);
         if (index !== -1) {
@@ -179,19 +224,30 @@ const sendMessage = async () => {
                             v-for="conv in conversations"
                             :key="conv.conversation_id"
                             @click="selectConversation(conv)"
-                            class="px-4 py-3 border-b border-gray-100 cursor-pointer transition-colors"
+                            class="group px-4 py-3 border-b border-gray-100 cursor-pointer transition-colors"
                             :class="conv.conversation_id === conversation?.conversation_id
                                 ? 'bg-indigo-50 border-l-2 border-l-indigo-500'
                                 : 'hover:bg-gray-50'"
                         >
                             <div class="flex items-center justify-between gap-2 mb-0.5">
                                 <span class="text-sm font-medium text-gray-900 truncate">{{ conv.title }}</span>
-                                <span
-                                    v-if="conv.status === 'banned'"
-                                    class="flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700"
-                                >
-                                    Bloqueada
-                                </span>
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                    <span
+                                        v-if="conv.status === 'banned'"
+                                        class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700"
+                                    >
+                                        Bloqueada
+                                    </span>
+                                    <button
+                                        @click="openDeleteModal(conv, $event)"
+                                        class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-5 h-5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                        title="Eliminar conversación"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                             <p class="text-xs text-gray-500 truncate">{{ conv.last_message_preview ?? 'Sin mensajes' }}</p>
                             <p class="text-[10px] text-gray-400 mt-0.5">{{ conv.last_message_at }}</p>
@@ -237,6 +293,17 @@ const sendMessage = async () => {
                                 </p>
                             </div>
                         </div>
+
+                        <!-- Thinking bubble -->
+                        <div v-if="isThinking && !isBanned" class="flex justify-start">
+                            <div class="max-w-[80%] rounded-2xl px-4 py-3 bg-white border border-gray-200 rounded-bl-md shadow-sm">
+                                <div class="flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.3s]"></span>
+                                    <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.15s]"></span>
+                                    <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Banned banner -->
@@ -275,4 +342,17 @@ const sendMessage = async () => {
             </div>
         </template>
     </DataProvider>
+
+    <!-- Delete conversation modal -->
+    <AppModal :opened="showDeleteModal" max-width-class="max-w-sm" @close="showDeleteModal = false">
+        <template #content>
+            <AppRemover
+                :model="conversationToDelete"
+                title="Eliminar conversación"
+                question-message="¿Seguro? Se borrarán todos sus mensajes y no se puede deshacer."
+                @close="showDeleteModal = false"
+                @processed="onConversationDeleted"
+            />
+        </template>
+    </AppModal>
 </template>
