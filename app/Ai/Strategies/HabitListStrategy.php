@@ -31,13 +31,18 @@ class HabitListStrategy implements ListableResource
         }
 
         return $habits->map(function (Habit $h) {
-            $lines = [implode(' | ', [
+            $lines = [implode(' | ', array_filter([
                 "ID: {$h->habit_id}",
                 "Nombre: {$h->name}",
                 "Naturaleza: {$h->habit_nature->label()}",
                 "Importancia: {$h->desire_type->label()}",
                 'Activo: '.($h->is_active ? 'Sí' : 'No'),
-            ])];
+                $h->description ? "Descripción: {$h->description}" : null,
+                $h->implementation_intention ? "Intención de implementación: {$h->implementation_intention}" : null,
+                $h->location ? "Lugar: {$h->location}" : null,
+                $h->cue ? "Señal: {$h->cue}" : null,
+                $h->reframe ? "Reformulación positiva: {$h->reframe}" : null,
+            ]))];
 
             foreach ($h->schedules as $schedule) {
                 $lines[] = '  Programacion ID: '.$schedule->habit_schedule_id.' | '.$this->formatSchedule($schedule);

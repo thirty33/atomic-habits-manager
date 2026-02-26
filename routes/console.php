@@ -8,5 +8,6 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('atomic-ia:process')->everyMinute()->withoutOverlapping();
-Schedule::command('atomic-ia:moderate')->everyMinute()->withoutOverlapping();
+Schedule::command('queue:work --stop-when-empty')->everySecond()->withoutOverlapping(expiresAt: 1)->runInBackground();
+Schedule::command('atomic-ia:process')->everySecond()->withoutOverlapping(expiresAt: 1)->runInBackground();
+Schedule::command('atomic-ia:moderate')->everySecond()->withoutOverlapping(expiresAt: 1)->runInBackground();
