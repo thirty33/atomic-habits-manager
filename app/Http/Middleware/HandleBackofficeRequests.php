@@ -38,6 +38,14 @@ readonly class HandleBackofficeRequests
             )
             ->addSidebarItem(
                 new SidebarLink(
+                    text: __('Calendario'),
+                    href: route('backoffice.calendar.index'),
+                    iconComponent: Heroicons::CALENDAR,
+                    current: request()->routeIs('backoffice.calendar.index'),
+                )
+            )
+            ->addSidebarItem(
+                new SidebarLink(
                     text: 'Atomic IA',
                     href: route('backoffice.atomic-ia.index'),
                     iconComponent: Heroicons::CHAT_BUBBLE,

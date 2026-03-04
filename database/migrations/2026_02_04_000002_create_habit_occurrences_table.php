@@ -19,9 +19,6 @@ return new class extends Migration
             $table->date('occurrence_date');
             $table->time('start_time');
             $table->time('end_time');
-            $table->enum('status', ['pending', 'completed', 'partial', 'not_completed', 'skipped'])->default('pending');
-            $table->timestamp('completed_at')->nullable();
-            $table->text('notes')->nullable();
             $table->timestamps();
 
             $table->index(['habit_id', 'occurrence_date']);

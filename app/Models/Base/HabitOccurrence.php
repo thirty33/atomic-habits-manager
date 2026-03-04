@@ -16,13 +16,9 @@ class HabitOccurrence extends Model
         'occurrence_date',
         'start_time',
         'end_time',
-        'status',
-        'completed_at',
-        'notes',
     ];
 
     protected $casts = [
         'occurrence_date' => 'date',
-        'completed_at' => 'datetime',
     ];
 }
