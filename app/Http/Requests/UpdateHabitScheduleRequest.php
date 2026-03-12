@@ -3,25 +3,22 @@
 namespace App\Http\Requests;
 
 use App\Enums\RecurrenceType;
-use App\Models\Habit;
+use App\Models\HabitSchedule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class HabitScheduleRequest extends FormRequest
+class UpdateHabitScheduleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $habitId = $this->input('habit_id');
+        $schedule = HabitSchedule::find($this->route('id'));
 
-        return $habitId && Habit::where('habit_id', $habitId)
-            ->where('user_id', auth()->id())
-            ->exists();
+        return $schedule && $schedule->habit->user_id === auth()->id();
     }
 
     public function rules(): array
     {
         return [
-            'habit_id' => ['required', 'exists:habits,habit_id'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
             'recurrence_type' => ['required', Rule::in(array_column(RecurrenceType::cases(), 'value'))],

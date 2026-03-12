@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 Schedule::command('queue:work --stop-when-empty')->everySecond()->withoutOverlapping(expiresAt: 1)->runInBackground();
 Schedule::command('atomic-ia:process')->everySecond()->withoutOverlapping(expiresAt: 1)->runInBackground();
 Schedule::command('atomic-ia:moderate')->everySecond()->withoutOverlapping(expiresAt: 1)->runInBackground();
+Schedule::command('habits:generate-occurrences')->dailyAt('03:00')->withoutOverlapping();

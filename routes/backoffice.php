@@ -16,6 +16,9 @@ Route::jsonGroup('calendar', \App\Http\Controllers\Backoffice\CalendarController
     'index', 'json',
 ]);
 
+Route::get('calendar/occurrences', [\App\Http\Controllers\Backoffice\CalendarController::class, 'occurrences'])
+    ->name('calendar.occurrences');
+
 Route::jsonGroup('atomic-ia', \App\Http\Controllers\Backoffice\AtomicIAController::class, [
     'index', 'json', 'store',
 ]);

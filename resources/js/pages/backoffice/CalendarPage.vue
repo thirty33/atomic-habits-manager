@@ -5,7 +5,6 @@ export default {
 </script>
 
 <script setup>
-import { ref } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -13,9 +12,14 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import DataProvider from '@/providers/DataProvider.js';
 import useDataProvider from '@/composables/useDataProvider.js';
+import useCalendar from '@/composables/useCalendar.js';
 
-defineProps({
+const props = defineProps({
     jsonUrl: {
+        type: String,
+        required: true,
+    },
+    occurrencesUrl: {
         type: String,
         required: true,
     },
@@ -23,150 +27,15 @@ defineProps({
 
 const { dataProviderKey } = useDataProvider();
 
-// ---------------------------------------------------------------------------
-// Hardcoded occurrences — same shape as HabitOccurrenceResource will return.
-// Replace apiResponse.data with the real API response when backend is ready.
-// ---------------------------------------------------------------------------
+const {
+    STATUS_LABEL,
+    STATUS_STYLES,
+    selectedOccurrence,
+    clearSelection,
+    calendarOptions,
+} = useCalendar(props.occurrencesUrl);
 
-const TODAY = new Date().toISOString().slice(0, 10);
-
-function d(offset) {
-    const dt = new Date(TODAY);
-    dt.setDate(dt.getDate() + offset);
-    return dt.toISOString().slice(0, 10);
-}
-
-const apiResponse = {
-    data: [
-        // Meditación — daily, build, color propio
-        { habit_occurrence_id: 1,  habit_id: 1, habit_schedule_id: 10, occurrence_date: d(-2), start_time: '07:00', end_time: '07:20', status: 'completed',     completed_at: `${d(-2)}T07:18:00Z`, notes: 'Muy bien hoy', update_action: { url: '/backoffice/occurrences/1',  method: 'patch' }, habit: { habit_id: 1, name: 'Meditación',           color: '#8b5cf6', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'want', desire_type_label: 'Quiero hacerlo',   is_active: true } },
-        { habit_occurrence_id: 2,  habit_id: 1, habit_schedule_id: 10, occurrence_date: d(-1), start_time: '07:00', end_time: '07:20', status: 'skipped',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/2',  method: 'patch' }, habit: { habit_id: 1, name: 'Meditación',           color: '#8b5cf6', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'want', desire_type_label: 'Quiero hacerlo',   is_active: true } },
-        { habit_occurrence_id: 3,  habit_id: 1, habit_schedule_id: 10, occurrence_date: d( 0), start_time: '07:00', end_time: '07:20', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/3',  method: 'patch' }, habit: { habit_id: 1, name: 'Meditación',           color: '#8b5cf6', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'want', desire_type_label: 'Quiero hacerlo',   is_active: true } },
-        { habit_occurrence_id: 4,  habit_id: 1, habit_schedule_id: 10, occurrence_date: d( 1), start_time: '07:00', end_time: '07:20', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/4',  method: 'patch' }, habit: { habit_id: 1, name: 'Meditación',           color: '#8b5cf6', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'want', desire_type_label: 'Quiero hacerlo',   is_active: true } },
-        // Ejercicio — weekly, build, sin color
-        { habit_occurrence_id: 5,  habit_id: 2, habit_schedule_id: 11, occurrence_date: d(-1), start_time: '06:00', end_time: '07:00', status: 'completed',     completed_at: `${d(-1)}T07:01:00Z`, notes: null,          update_action: { url: '/backoffice/occurrences/5',  method: 'patch' }, habit: { habit_id: 2, name: 'Ejercicio',             color: null,      habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'need', desire_type_label: 'Necesito hacerlo', is_active: true } },
-        { habit_occurrence_id: 6,  habit_id: 2, habit_schedule_id: 11, occurrence_date: d( 3), start_time: '06:00', end_time: '07:00', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/6',  method: 'patch' }, habit: { habit_id: 2, name: 'Ejercicio',             color: null,      habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'need', desire_type_label: 'Necesito hacerlo', is_active: true } },
-        // Revisar redes — daily, break
-        { habit_occurrence_id: 7,  habit_id: 3, habit_schedule_id: 12, occurrence_date: d(-1), start_time: '22:00', end_time: '22:30', status: 'not_completed', completed_at: null,               notes: 'No pude',      update_action: { url: '/backoffice/occurrences/7',  method: 'patch' }, habit: { habit_id: 3, name: 'Revisar redes sociales', color: null,      habit_nature: 'break', habit_nature_label: 'Romper hábito',    desire_type: 'need', desire_type_label: 'Necesito hacerlo', is_active: true } },
-        { habit_occurrence_id: 8,  habit_id: 3, habit_schedule_id: 12, occurrence_date: d( 0), start_time: '22:00', end_time: '22:30', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/8',  method: 'patch' }, habit: { habit_id: 3, name: 'Revisar redes sociales', color: null,      habit_nature: 'break', habit_nature_label: 'Romper hábito',    desire_type: 'need', desire_type_label: 'Necesito hacerlo', is_active: true } },
-        // Lectura — every_n_days:3, build, color ámbar
-        { habit_occurrence_id: 9,  habit_id: 4, habit_schedule_id: 13, occurrence_date: d( 0), start_time: '21:00', end_time: '21:45', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/9',  method: 'patch' }, habit: { habit_id: 4, name: 'Lectura',               color: '#f59e0b', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'want', desire_type_label: 'Quiero hacerlo',   is_active: true } },
-        { habit_occurrence_id: 10, habit_id: 4, habit_schedule_id: 13, occurrence_date: d( 3), start_time: '21:00', end_time: '21:45', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/10', method: 'patch' }, habit: { habit_id: 4, name: 'Lectura',               color: '#f59e0b', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'want', desire_type_label: 'Quiero hacerlo',   is_active: true } },
-        // Cita médica — recurrence_type:none (actividad eventual)
-        { habit_occurrence_id: 11, habit_id: 5, habit_schedule_id: 14, occurrence_date: d( 2), start_time: '10:00', end_time: '11:00', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/11', method: 'patch' }, habit: { habit_id: 5, name: 'Cita médica',           color: '#64748b', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'need', desire_type_label: 'Necesito hacerlo', is_active: true } },
-        // Dieta saludable — daily, partial
-        { habit_occurrence_id: 12, habit_id: 6, habit_schedule_id: 15, occurrence_date: d(-1), start_time: '13:00', end_time: '13:30', status: 'partial',       completed_at: null,               notes: 'No cené bien', update_action: { url: '/backoffice/occurrences/12', method: 'patch' }, habit: { habit_id: 6, name: 'Dieta saludable',      color: '#22c55e', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'need', desire_type_label: 'Necesito hacerlo', is_active: true } },
-        { habit_occurrence_id: 13, habit_id: 6, habit_schedule_id: 15, occurrence_date: d( 0), start_time: '13:00', end_time: '13:30', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/13', method: 'patch' }, habit: { habit_id: 6, name: 'Dieta saludable',      color: '#22c55e', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'need', desire_type_label: 'Necesito hacerlo', is_active: true } },
-        // Journaling — daily, skipped
-        { habit_occurrence_id: 14, habit_id: 7, habit_schedule_id: 16, occurrence_date: d(-2), start_time: '08:00', end_time: '08:15', status: 'skipped',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/14', method: 'patch' }, habit: { habit_id: 7, name: 'Journaling',            color: '#0ea5e9', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'want', desire_type_label: 'Quiero hacerlo',   is_active: true } },
-        { habit_occurrence_id: 15, habit_id: 7, habit_schedule_id: 16, occurrence_date: d( 0), start_time: '08:00', end_time: '08:15', status: 'pending',       completed_at: null,               notes: null,           update_action: { url: '/backoffice/occurrences/15', method: 'patch' }, habit: { habit_id: 7, name: 'Journaling',            color: '#0ea5e9', habit_nature: 'build', habit_nature_label: 'Construir hábito', desire_type: 'want', desire_type_label: 'Quiero hacerlo',   is_active: true } },
-    ],
-};
-
-// ---------------------------------------------------------------------------
-// Display constants
-// ---------------------------------------------------------------------------
-
-const STATUS_LABEL = {
-    completed:     '✓',
-    pending:       '○',
-    partial:       '◑',
-    not_completed: '✗',
-    skipped:       '—',
-};
-
-const STATUS_STYLES = {
-    completed:     { opacity: '1',   textDecoration: 'none' },
-    pending:       { opacity: '0.9', textDecoration: 'none' },
-    partial:       { opacity: '0.9', textDecoration: 'none' },
-    not_completed: { opacity: '0.5', textDecoration: 'line-through' },
-    skipped:       { opacity: '0.4', textDecoration: 'line-through' },
-};
-
-const NATURE_DEFAULT_COLOR = {
-    build: '#6366f1',
-    break: '#ef4444',
-};
-
-// ---------------------------------------------------------------------------
-// occurrenceToEvent — will live in a composable when connecting to the API
-// ---------------------------------------------------------------------------
-
-function occurrenceToEvent(occurrence) {
-    const { habit } = occurrence;
-    const color = habit.color ?? NATURE_DEFAULT_COLOR[habit.habit_nature];
-
-    return {
-        id:              String(occurrence.habit_occurrence_id),
-        title:           habit.name,
-        start:           `${occurrence.occurrence_date}T${occurrence.start_time}`,
-        end:             `${occurrence.occurrence_date}T${occurrence.end_time}`,
-        backgroundColor: color,
-        borderColor:     color,
-        textColor:       '#ffffff',
-        extendedProps: {
-            habit_occurrence_id: occurrence.habit_occurrence_id,
-            status:              occurrence.status,
-            completed_at:        occurrence.completed_at,
-            notes:               occurrence.notes,
-            update_action:       occurrence.update_action,
-            habit_id:            habit.habit_id,
-            habit_nature:        habit.habit_nature,
-            habit_nature_label:  habit.habit_nature_label,
-            desire_type_label:   habit.desire_type_label,
-        },
-    };
-}
-
-// ---------------------------------------------------------------------------
-// Calendar state
-// ---------------------------------------------------------------------------
-
-const selectedOccurrence = ref(null);
-
-const calendarOptions = ref({
-    plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
-    initialView: 'timeGridWeek',
-    locale: 'es',
-    headerToolbar: {
-        left:   'prev,next today',
-        center: 'title',
-        right:  'dayGridMonth,timeGridWeek,timeGridDay',
-    },
-    buttonText: {
-        today: 'Hoy',
-        month: 'Mes',
-        week:  'Sem',
-        day:   'Día',
-        list:  'Lista',
-    },
-    allDayText: 'hr',
-    slotMinTime: '05:00:00',
-    slotMaxTime: '23:30:00',
-    slotDuration: '00:30:00',
-    height: 'auto',
-    nowIndicator: true,
-    events: apiResponse.data.map(occurrenceToEvent),
-    // When connecting to the real API, replace `events` with a function:
-    // events(fetchInfo, successCallback) {
-    //     axios.get(jsonUrl, { params: { start: fetchInfo.startStr, end: fetchInfo.endStr } })
-    //         .then(r => successCallback(r.data.data.map(occurrenceToEvent)));
-    // }
-    eventClick({ event }) {
-        const ep = event.extendedProps;
-        selectedOccurrence.value = {
-            title:              event.title,
-            start:              event.startStr,
-            end:                event.endStr,
-            status:             ep.status,
-            completed_at:       ep.completed_at,
-            notes:              ep.notes,
-            habit_nature:       ep.habit_nature,
-            habit_nature_label: ep.habit_nature_label,
-            desire_type_label:  ep.desire_type_label,
-        };
-    },
-});
+calendarOptions.plugins = [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin];
 </script>
 
 <template>
@@ -217,7 +86,7 @@ const calendarOptions = ref({
                         class="fixed bottom-6 right-6 w-72 bg-white rounded-xl border border-gray-200 shadow-xl p-4 z-30"
                     >
                         <button
-                            @click="selectedOccurrence = null"
+                            @click="clearSelection"
                             class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-sm"
                         >✕</button>
 

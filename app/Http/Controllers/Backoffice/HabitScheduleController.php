@@ -7,6 +7,7 @@ use App\Actions\HabitSchedules\UpdateHabitScheduleAction;
 use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\HabitScheduleRequest;
+use App\Http\Requests\UpdateHabitScheduleRequest;
 use App\Services\ToastNotificationService;
 use Illuminate\Http\JsonResponse;
 
@@ -26,7 +27,7 @@ class HabitScheduleController extends Controller
         );
     }
 
-    public function update(HabitScheduleRequest $request, int $id): JsonResponse
+    public function update(UpdateHabitScheduleRequest $request, int $id): JsonResponse
     {
         UpdateHabitScheduleAction::execute($id, $request->validated());
 

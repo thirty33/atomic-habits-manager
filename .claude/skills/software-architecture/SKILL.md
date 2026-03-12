@@ -566,6 +566,77 @@ class ModerateMessageTool implements Tool
 
 ---
 
+## 7. Frontend — Composables and Data Fetching
+
+Vue components must **not contain business logic or API orchestration inline**. Extract reusable logic into composables (`resources/js/composables/`) and keep components as thin presentation layers.
+
+### Location
+```
+resources/js/composables/use{Feature}.js
+```
+
+### Data Fetching Patterns
+
+| Pattern | When to use | Example |
+|---------|-------------|---------|
+| **`DataProvider`** component | Page-level data loading (ViewModel JSON) | Tables, dashboards, page metadata |
+| **`useAxios` → `makeRequest()`** | Mutations (POST/PUT/DELETE) | Form submissions, deletions |
+| **`useForm`** | Form submissions with validation error handling | Create/update modals |
+| **Direct `axios.get()`** in composable | Custom fetch callbacks (e.g., FullCalendar `events()`) | Calendar occurrences |
+
+### Rules
+- **No API calls in components** — always delegate to a composable or `DataProvider`
+- **No inline data transformation in components** — mapping functions (e.g., `occurrenceToEvent`) belong in the composable
+- **Constants** (status labels, color maps, display config) belong in the composable, not scattered in the component
+- Components only import what they need from the composable via destructuring
+- Composables return reactive refs and plain config objects — components bind them to the template
+
+### Example — Composable with API fetch callback
+```js
+// resources/js/composables/useCalendar.js
+import { ref } from 'vue';
+
+function occurrenceToEvent(occurrence) {
+    // Transform API response → FullCalendar event shape
+}
+
+function fetchOccurrences(url) {
+    return (fetchInfo, successCallback, failureCallback) => {
+        axios.get(url, {
+            params: { start: fetchInfo.startStr, end: fetchInfo.endStr },
+        })
+        .then(response => successCallback(response.data.data.map(occurrenceToEvent)))
+        .catch(error => failureCallback(error));
+    };
+}
+
+export default function useCalendar(occurrencesUrl) {
+    const selectedOccurrence = ref(null);
+
+    const calendarOptions = {
+        events: fetchOccurrences(occurrencesUrl),
+        eventClick({ event }) { /* update selectedOccurrence */ },
+    };
+
+    return { selectedOccurrence, calendarOptions };
+}
+```
+
+### Example — Thin component consuming the composable
+```vue
+<script setup>
+import useCalendar from '@/composables/useCalendar.js';
+
+const props = defineProps({ occurrencesUrl: String });
+const { selectedOccurrence, calendarOptions } = useCalendar(props.occurrencesUrl);
+
+// Plugins are component-level concerns (imports), assigned here
+calendarOptions.plugins = [dayGridPlugin, timeGridPlugin];
+</script>
+```
+
+---
+
 ## Summary — Responsibility Map
 
 | Layer | Responsibility | Location |
@@ -579,4 +650,5 @@ class ModerateMessageTool implements Tool
 | **AI Tool** | Write operation exposed to an Agent | `app/Ai/Tools/` |
 | **Backoffice Controller** | Route handler: returns View (index), JSON (json), or toast (store/update/destroy) | `app/Http/Controllers/Backoffice/` |
 | **ViewModel** | Builds frontend config (table, modals, filters, buttons) from read queries | `app/ViewModels/Backoffice/{Module}/` |
+| **Composable** | Reusable frontend logic: API fetching, data transforms, reactive state | `resources/js/composables/` |
 | **Command / Job / MCP Tool** | Client — calls the Service, never calls Repositories or Actions directly | `app/Console/Commands/`, `app/Jobs/`, `app/Mcp/` |

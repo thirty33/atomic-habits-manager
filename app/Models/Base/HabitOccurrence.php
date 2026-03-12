@@ -2,10 +2,14 @@
 
 namespace App\Models\Base;
 
+use App\Casts\TimeCast;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class HabitOccurrence extends Model
 {
+    use HasFactory;
+
     protected $table = 'habit_occurrences';
 
     protected $primaryKey = 'habit_occurrence_id';
@@ -20,5 +24,7 @@ class HabitOccurrence extends Model
 
     protected $casts = [
         'occurrence_date' => 'date',
+        'start_time' => TimeCast::class,
+        'end_time' => TimeCast::class,
     ];
 }
