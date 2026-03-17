@@ -46,6 +46,14 @@ readonly class HandleBackofficeRequests
             )
             ->addSidebarItem(
                 new SidebarLink(
+                    text: __('Reporte diario'),
+                    href: route('backoffice.daily-reports.index'),
+                    iconComponent: Heroicons::CLIPBOARD,
+                    current: request()->routeIs('backoffice.daily-reports.*'),
+                )
+            )
+            ->addSidebarItem(
+                new SidebarLink(
                     text: 'Atomic IA',
                     href: route('backoffice.atomic-ia.index'),
                     iconComponent: Heroicons::CHAT_BUBBLE,

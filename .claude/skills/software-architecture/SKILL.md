@@ -113,10 +113,11 @@ final class DeleteHabitAction implements DeleteAction
 
 ### How to call an Action
 ```php
-// From anywhere: Controller, Command, Job, MCP Tool
-$habit = CreateHabitAction::execute($request->validated());
+// ONLY from a Service — never from Controllers, Commands, Jobs, or MCP Tools
+// Inside a Service method:
+$habit = CreateHabitAction::execute($data);
 
-UpdateHabitAction::execute($id, $request->validated());
+UpdateHabitAction::execute($id, $data);
 
 DeleteHabitAction::execute($id);
 ```
@@ -168,47 +169,108 @@ class ConversationRepository
 
 ---
 
-## 3. Services with Contracts — Multi-Client Module Operations
+## 3. Services — The Only Entry Point for Controllers and External Clients
 
-When a module's logic must be callable from multiple clients (Controller, Artisan Command, MCP Tool, Job, etc.), the entry point is a **Service** backed by a **Contract (Interface)**.
+**Services are the mandatory orchestration layer.** Controllers, Artisan Commands, Jobs, and MCP Tools **must never** call Actions or Repositories directly — they always go through a Service.
+
+### Access Rules (CRITICAL)
+```
+Controller / Command / Job / MCP Tool
+    └── Service  (the only dependency they inject)
+            ├── Repository  (reads)
+            └── Action      (writes)
+```
+
+- **Controllers call Services only** — never Actions, never Repositories
+- **Services call Repositories** (for reads) **and Actions** (for writes)
+- **Repositories** only contain read queries — no writes
+- **Actions** only contain write operations — no reads
 
 ### Directory structure
 ```
 app/Services/{Module}/
     Contracts/
-        {Module}ServiceInterface.php    ← contract the service implements
+        {Module}ServiceInterface.php    ← contract (optional, required when multiple clients exist)
     {Module}Service.php                 ← main orchestrating service
 ```
 
 ### Rules for the Service
-- Injected with Repositories and Actions via **constructor property promotion**
+- Injected with Repositories via **constructor property promotion**
+- Calls Actions statically for writes (Actions are `final` with `static execute()`)
 - Orchestrates the flow: calls repositories to read, calls actions to write
 - Never contains raw Eloquent queries — delegates to Repositories
 - Never contains direct `Model::create()` calls — delegates to Actions
-- Registered in a ServiceProvider when the interface must be bound in the container
+- Registered in a ServiceProvider when the interface must be bound or config values are needed
 
-### Example — Service structure
+### Example — CRUD Service
 ```php
-// app/Services/AtomicIA/AtomicIAService.php
-class AtomicIAService
+// app/Services/DailyReports/DailyReportService.php
+class DailyReportService
 {
     public function __construct(
-        private string $provider,
-        private string $model,
+        private DailyReportRepository $repository,
     ) {}
 
-    public function reply(Conversation $conversation, string $message): string
+    public function findWithEntries(int $reportId): ?DailyReport
     {
-        return (new AtomicIAAgent($conversation))->prompt(
-            $message,
-            provider: $this->provider,
-            model: $this->model,
-        );
+        return $this->repository->findWithEntries($reportId);
+    }
+
+    public function findOrCreateForDate(int $userId, string $date): DailyReport
+    {
+        $report = $this->repository->findForUserAndDate($userId, $date);
+
+        if ($report) {
+            return $report;
+        }
+
+        return CreateDailyReportAction::execute([
+            'user_id' => $userId,
+            'report_date' => $date,
+        ]);
+    }
+
+    public function update(int $id, array $data): void
+    {
+        UpdateDailyReportAction::execute($id, $data);
+    }
+
+    public function delete(int $id): void
+    {
+        DeleteDailyReportAction::execute($id);
     }
 }
 ```
 
-### Registration in ServiceProvider
+### Example — Controller using the Service (NOT Actions/Repositories)
+```php
+class DailyReportController extends Controller
+{
+    public function __construct(
+        private readonly DailyReportService $service,
+        private readonly ToastNotificationService $toastNotification,
+    ) {}
+
+    public function store(DailyReportRequest $request): JsonResponse
+    {
+        $report = $this->service->findOrCreateForDate(
+            auth()->id(),
+            $request->validated('report_date'),
+        );
+
+        return $this->toastNotification->notify(/* ... */);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $this->service->delete($id);
+
+        return $this->toastNotification->notify(/* ... */);
+    }
+}
+```
+
+### Registration in ServiceProvider (when needed)
 ```php
 // app/Providers/AtomicIAServiceProvider.php
 class AtomicIAServiceProvider extends ServiceProvider
@@ -222,26 +284,21 @@ class AtomicIAServiceProvider extends ServiceProvider
             );
         });
     }
-
-    public function boot(): void
-    {
-        Message::observe(MessageObserver::class);
-    }
 }
 ```
 
 ### How multiple clients call the same service
 ```php
+// From a Controller
+class DailyReportController extends Controller
+{
+    public function __construct(private readonly DailyReportService $service) {}
+}
+
 // From an Artisan Command
 class ProcessPendingMessagesCommand extends Command
 {
     public function __construct(private AtomicIAService $service) { parent::__construct(); }
-
-    public function handle(): int
-    {
-        // ...
-        return self::SUCCESS;
-    }
 }
 
 // From a Job
@@ -250,7 +307,6 @@ class ProcessConversationJob implements ShouldQueue
     public function handle(AtomicIAService $service): void
     {
         $response = $service->reply($this->conversation, $lastMessage->body);
-        CreateAssistantMessageAction::execute($this->conversation, $response);
     }
 }
 
@@ -258,14 +314,6 @@ class ProcessConversationJob implements ShouldQueue
 class ReplyToConversationTool
 {
     public function __construct(private AtomicIAService $service) {}
-
-    public function handle(Request $request): string
-    {
-        return $this->service->reply(
-            Conversation::findOrFail($request['conversation_id']),
-            $request['message'],
-        );
-    }
 }
 ```
 
@@ -386,13 +434,17 @@ routes/backoffice.php  (jsonGroup macro)
 ### Controller rules
 - `index()` returns a Blade view with `json_url` and any other props needed by Vue
 - `json()` accepts the ViewModel via injection and returns `response()->json($viewModel->toArray())`
-- Write operations (`store`, `update`, `destroy`) call Actions directly, then use `ToastNotificationService` to respond
-- Never perform Eloquent queries inline in a controller — delegate to Actions or the ViewModel
+- **Controllers inject Services** — never Actions or Repositories directly
+- Write operations (`store`, `update`, `destroy`) call the **Service**, then use `ToastNotificationService` to respond
+- Never perform Eloquent queries inline in a controller — delegate to the Service
 
 ```php
 class HabitController extends Controller
 {
-    public function __construct(private readonly ToastNotificationService $toastNotification) {}
+    public function __construct(
+        private readonly HabitService $service,
+        private readonly ToastNotificationService $toastNotification,
+    ) {}
 
     public function index(): View
     {
@@ -408,7 +460,7 @@ class HabitController extends Controller
 
     public function store(HabitRequest $request): JsonResponse
     {
-        $habit = CreateHabitAction::execute($request->validated());
+        $habit = $this->service->create($request->validated());
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,
@@ -421,7 +473,7 @@ class HabitController extends Controller
 
     public function update(HabitRequest $request, int $id): JsonResponse
     {
-        UpdateHabitAction::execute($id, $request->validated());
+        $this->service->update($id, $request->validated());
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,
@@ -433,7 +485,7 @@ class HabitController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        DeleteHabitAction::execute($id);
+        $this->service->delete($id);
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,
@@ -648,7 +700,7 @@ calendarOptions.plugins = [dayGridPlugin, timeGridPlugin];
 | **Enum** | Backed type for any status, type, role, or fixed-value field | `app/Enums/` |
 | **AI Agent** | LLM conversation or task agent | `app/Ai/Agents/` |
 | **AI Tool** | Write operation exposed to an Agent | `app/Ai/Tools/` |
-| **Backoffice Controller** | Route handler: returns View (index), JSON (json), or toast (store/update/destroy) | `app/Http/Controllers/Backoffice/` |
+| **Backoffice Controller** | Route handler: injects **Service only**, returns View/JSON/toast | `app/Http/Controllers/Backoffice/` |
 | **ViewModel** | Builds frontend config (table, modals, filters, buttons) from read queries | `app/ViewModels/Backoffice/{Module}/` |
 | **Composable** | Reusable frontend logic: API fetching, data transforms, reactive state | `resources/js/composables/` |
-| **Command / Job / MCP Tool** | Client — calls the Service, never calls Repositories or Actions directly | `app/Console/Commands/`, `app/Jobs/`, `app/Mcp/` |
+| **Command / Job / MCP Tool** | Client — calls the **Service only**, never Repositories or Actions directly | `app/Console/Commands/`, `app/Jobs/`, `app/Mcp/` |

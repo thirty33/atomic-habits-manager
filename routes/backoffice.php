@@ -28,3 +28,19 @@ Route::post('atomic-ia/conversations', [\App\Http\Controllers\Backoffice\AtomicI
 
 Route::delete('atomic-ia/conversations/{id}', [\App\Http\Controllers\Backoffice\AtomicIAController::class, 'destroyConversation'])
     ->name('atomic-ia.conversations.destroy');
+
+Route::jsonGroup('daily-reports', \App\Http\Controllers\Backoffice\DailyReportController::class, [
+    'index', 'json', 'store', 'destroy',
+]);
+
+Route::get('daily-reports/{id}/edit', [\App\Http\Controllers\Backoffice\DailyReportController::class, 'edit'])
+    ->name('daily-reports.edit');
+
+Route::get('daily-reports/{id}/edit-json', [\App\Http\Controllers\Backoffice\DailyReportController::class, 'editJson'])
+    ->name('daily-reports.edit-json');
+
+Route::put('daily-reports/{id}', [\App\Http\Controllers\Backoffice\DailyReportController::class, 'update'])
+    ->name('daily-reports.update');
+
+Route::put('daily-reports/{id}/entries', [\App\Http\Controllers\Backoffice\DailyReportController::class, 'saveEntries'])
+    ->name('daily-reports.save-entries');

@@ -22,6 +22,10 @@ const props = defineProps({
     cssLabelClass: String,
     modelValue: String,
     defaultValue: String,
+    max: {
+        type: String,
+        default: null,
+    },
     isRequired: {
         type: Boolean,
         default: false,
@@ -47,6 +51,7 @@ const currentValue = computed(() => {
             :name="name"
             :value="currentValue"
             type="date"
+            :max="max"
             :class="[cssClass, cssFieldClass]"
             @change="$emit('update:modelValue', $event.target.value)"
         />

@@ -19,6 +19,7 @@ class DateField implements Contracts\Field
         protected string $name,
         protected string $label,
         protected ?string $defaultValue = null,
+        protected ?string $max = null,
     ) {}
 
     public function visibleWhen(array $condition): static
@@ -41,6 +42,7 @@ class DateField implements Contracts\Field
                 'cssFieldClass' => self::CSS_FIELD_CLASS,
                 'cssLabelClass' => self::CSS_LABEL_CLASS,
                 'defaultValue' => $this->defaultValue,
+                'max' => $this->max,
                 ...$this->requiredIndicatorProps(),
             ],
         ], fn ($v) => $v !== null);

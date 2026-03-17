@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class HabitOccurrence extends Base\HabitOccurrence
 {
@@ -14,5 +15,10 @@ class HabitOccurrence extends Base\HabitOccurrence
     public function schedule(): BelongsTo
     {
         return $this->belongsTo(HabitSchedule::class, 'habit_schedule_id', 'habit_schedule_id');
+    }
+
+    public function reportEntries(): HasMany
+    {
+        return $this->hasMany(DailyReportEntry::class, 'habit_occurrence_id', 'habit_occurrence_id');
     }
 }

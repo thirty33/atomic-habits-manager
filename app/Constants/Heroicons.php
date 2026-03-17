@@ -24,5 +24,7 @@ final class Heroicons
 
     public const CHAT_BUBBLE = 'ChatBubbleLeftRightIcon';
 
+    public const CLIPBOARD = 'ClipboardDocumentListIcon';
+
     public const LOGOUT = 'ArrowRightOnRectangleIcon';
 }

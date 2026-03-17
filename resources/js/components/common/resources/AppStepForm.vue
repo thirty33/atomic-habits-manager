@@ -126,7 +126,7 @@ const getStepAction = () => {
 
 const advanceOrFinish = () => {
     if (currentStepIndex.value >= props.steps.length - 1) {
-        emit("processed");
+        emit("processed", { ...createdData });
     } else {
         currentStepIndex.value++;
         initFormForStep(currentStepIndex.value);

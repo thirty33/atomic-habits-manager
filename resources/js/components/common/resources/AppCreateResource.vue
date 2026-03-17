@@ -69,7 +69,7 @@ const submitForm = () => {
     <AppStepForm
         v-if="hasSteps"
         :steps="modalData.steps"
-        @processed="emit('processed')"
+        @processed="(data) => emit('processed', data)"
         @close="emit('close')"
     />
     <AppForm

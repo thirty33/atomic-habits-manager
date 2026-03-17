@@ -7,6 +7,8 @@ const DashboardPage = defineAsyncComponent(() => import('@/pages/backoffice/dash
 const DatatablePage = defineAsyncComponent(() => import('@/pages/backoffice/DatatablePage.vue'));
 const AtomicIaChatPage = defineAsyncComponent(() => import('@/pages/backoffice/AtomicIAChatPage.vue'));
 const CalendarPage = defineAsyncComponent(() => import('@/pages/backoffice/CalendarPage.vue'));
+const DailyReportsPage = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportsPage.vue'));
+const DailyReportPage = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportPage.vue'));
 
 export default {
     name: 'App',
@@ -17,6 +19,8 @@ export default {
         DatatablePage,
         AtomicIaChatPage,
         CalendarPage,
+        DailyReportsPage,
+        DailyReportPage,
     },
     setup() {
         return {
