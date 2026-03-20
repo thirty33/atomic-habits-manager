@@ -253,17 +253,7 @@ jobs:
             php artisan migrate --force
             php artisan db:seed --class=AdminUserSeeder --force
 
-            # Cache optimization
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan event:cache
-
-            # Restart queue workers and Reverb
-            php artisan queue:restart
-            sudo supervisorctl restart all
-
-            echo "Deploy completed successfully"
+            echo "Code deployed, waiting for assets upload..."
 
       - name: Upload build assets to server
         uses: appleboy/scp-action@v0.1.7
@@ -274,6 +264,34 @@ jobs:
           source: "build/*"
           target: "/var/www/atomic-habits/public/build"
           strip_components: 1
+
+      - name: Clear caches, optimize, and restart services
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/atomic-habits
+
+            # Clear all caches
+            php artisan config:clear
+            php artisan route:clear
+            php artisan view:clear
+            php artisan event:clear
+            php artisan cache:clear
+
+            # Rebuild caches with fresh config
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+
+            # Restart queue workers and Reverb
+            php artisan queue:restart
+            sudo supervisorctl restart all
+
+            echo "Deploy completed successfully"
 
       - name: Invalidate CloudFront cache
         uses: aws-actions/configure-aws-credentials@v4
