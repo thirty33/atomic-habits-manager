@@ -504,6 +504,11 @@ Resources:
         Origins:
           - Id: EC2Origin
             DomainName: !GetAtt EC2Instance.PublicDnsName
+            OriginCustomHeaders:
+              - HeaderName: X-Forwarded-Proto
+                HeaderValue: https
+              - HeaderName: X-Forwarded-Port
+                HeaderValue: '443'
             CustomOriginConfig:
               HTTPPort: 80
               OriginProtocolPolicy: http-only
