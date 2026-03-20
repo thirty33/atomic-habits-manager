@@ -264,12 +264,16 @@ Resources:
 
           # =============================================================
           # 6. INSTALAR COMPOSER
+          # HOME debe estar definido para que Composer funcione
           # =============================================================
+          export HOME=/root
+          export COMPOSER_HOME=/root/.composer
           php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
           php composer-setup.php
           mv composer.phar /usr/local/bin/composer
           rm composer-setup.php
           chmod +x /usr/local/bin/composer
+          composer --version
 
           # =============================================================
           # 7. INSTALAR NODE.JS
