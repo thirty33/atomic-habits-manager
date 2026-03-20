@@ -173,8 +173,8 @@ Resources:
       SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - !Ref EC2SecurityGroup
-      # Ubuntu 24.04 LTS us-west-2 (actualizar si cambia la region)
-      ImageId: ami-0a38c8532f5984ab4
+      # Ubuntu 24.04 LTS us-west-2 (2026-03-20)
+      ImageId: ami-019e303fb672172fc
       Tags:
         - Key: Name
           Value: !Sub '${ProjectName}-${Environment}-server'
