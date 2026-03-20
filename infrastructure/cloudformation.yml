@@ -411,7 +411,7 @@ Resources:
 
         Origins:
           - Id: EC2Origin
-            DomainName: !Ref ElasticIP
+            DomainName: !GetAtt EC2Instance.PublicDnsName
             CustomOriginConfig:
               HTTPPort: 80
               OriginProtocolPolicy: http-only
