@@ -177,6 +177,7 @@ jobs:
             APP_KEY=${{ secrets.APP_KEY }}
             APP_DEBUG=false
             APP_URL=${{ secrets.APP_URL }}
+            ASSET_URL=${{ secrets.APP_URL }}
             APP_LOCALE=en
             APP_FALLBACK_LOCALE=en
             APP_FAKER_LOCALE=en_US
@@ -242,8 +243,9 @@ jobs:
             VITE_APP_NAME=AtomicHabits
             ENVEOF
 
-            # Run migrations
+            # Run migrations and seed
             php artisan migrate --force
+            php artisan db:seed --class=AdminUserSeeder --force
 
             # Cache optimization
             php artisan config:cache
