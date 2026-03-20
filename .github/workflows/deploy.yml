@@ -160,7 +160,6 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: true
           script: |
             set -e
             cd /var/www/atomic-habits
@@ -196,7 +195,7 @@ jobs:
             DB_PORT=3306
             DB_DATABASE=${{ secrets.DB_DATABASE }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
 
             SESSION_DRIVER=database
             SESSION_LIFETIME=120
