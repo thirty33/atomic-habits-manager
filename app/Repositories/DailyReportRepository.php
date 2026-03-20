@@ -33,7 +33,7 @@ class DailyReportRepository
     public function findWithEntries(int $reportId): ?DailyReport
     {
         return DailyReport::query()
-            ->with(['entries' => fn ($q) => $q->orderBy('start_time'), 'entries.habit', 'entries.occurrence'])
+            ->with(['entries' => fn ($q) => $q->orderBy('start_time')->orderBy('end_time'), 'entries.habit', 'entries.occurrence'])
             ->find($reportId);
     }
 

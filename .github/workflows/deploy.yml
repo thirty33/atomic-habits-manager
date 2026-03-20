@@ -1,0 +1,271 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  STACK_NAME: 'atomic-habits-prod'
+
+jobs:
+  # ============================================================================
+  # JOB 1: INFRASTRUCTURE — Update CloudFormation stack
+  # Only runs if cloudformation.yml changed or manual dispatch
+  # ============================================================================
+  infrastructure:
+    name: Update Infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check if infrastructure changed
+        id: check_infra
+        run: |
+          if git diff HEAD~1 --name-only 2>/dev/null | grep -q 'infrastructure/cloudformation.yml'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure AWS credentials
+        if: steps.check_infra.outputs.changed == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Check stack status
+        if: steps.check_infra.outputs.changed == 'true'
+        id: stack_status
+        run: |
+          STATUS=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --query "Stacks[0].StackStatus" \
+            --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+      - name: Create stack (first run)
+        if: steps.check_infra.outputs.changed == 'true' && steps.stack_status.outputs.status == 'DOES_NOT_EXIST'
+        run: |
+          aws cloudformation create-stack \
+            --stack-name ${{ env.STACK_NAME }} \
+            --template-body file://infrastructure/cloudformation.yml \
+            --parameters \
+              ParameterKey=Environment,ParameterValue=prod \
+              ParameterKey=InstanceType,ParameterValue=t3.micro \
+              ParameterKey=KeyName,ParameterValue=${{ secrets.AWS_KEY_PAIR_NAME }} \
+              ParameterKey=ProjectName,ParameterValue=atomic-habits \
+              ParameterKey=ProjectDomain,ParameterValue=${{ secrets.PROJECT_DOMAIN }} \
+              ParameterKey=ProjectUser,ParameterValue=deployer \
+              ParameterKey=ProjectUserPassword,ParameterValue=${{ secrets.PROJECT_USER_PASSWORD }} \
+              ParameterKey=VPCId,ParameterValue=${{ secrets.AWS_VPC_ID }} \
+              ParameterKey=SubnetId,ParameterValue=${{ secrets.AWS_SUBNET_ID }} \
+              ParameterKey=RDSSecurityGroupId,ParameterValue=${{ secrets.AWS_RDS_SECURITY_GROUP_ID }}
+
+          echo "Waiting for stack creation..."
+          aws cloudformation wait stack-create-complete \
+            --stack-name ${{ env.STACK_NAME }}
+
+          echo "Stack created successfully"
+
+      - name: Update stack
+        if: steps.check_infra.outputs.changed == 'true' && steps.stack_status.outputs.status != 'DOES_NOT_EXIST'
+        run: |
+          aws cloudformation update-stack \
+            --stack-name ${{ env.STACK_NAME }} \
+            --template-body file://infrastructure/cloudformation.yml \
+            --parameters \
+              ParameterKey=Environment,UsePreviousValue=true \
+              ParameterKey=InstanceType,UsePreviousValue=true \
+              ParameterKey=KeyName,UsePreviousValue=true \
+              ParameterKey=ProjectName,UsePreviousValue=true \
+              ParameterKey=ProjectDomain,UsePreviousValue=true \
+              ParameterKey=ProjectUser,UsePreviousValue=true \
+              ParameterKey=ProjectUserPassword,UsePreviousValue=true \
+              ParameterKey=VPCId,UsePreviousValue=true \
+              ParameterKey=SubnetId,UsePreviousValue=true \
+              ParameterKey=RDSSecurityGroupId,UsePreviousValue=true \
+          && aws cloudformation wait stack-update-complete \
+            --stack-name ${{ env.STACK_NAME }} \
+          && echo "Stack updated successfully" \
+          || echo "No updates to perform or update failed - check stack events"
+
+  # ============================================================================
+  # JOB 2: BUILD — Compile frontend assets
+  # ============================================================================
+  build:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: public/build/
+          retention-days: 1
+
+  # ============================================================================
+  # JOB 3: DEPLOY — SSH to EC2, pull code, generate .env, migrate, restart
+  # ============================================================================
+  deploy:
+    name: Deploy to Server
+    needs: [infrastructure, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: build/
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd /var/www/atomic-habits
+
+            # Pull latest code
+            git pull origin master
+
+            # Install PHP dependencies
+            composer install --no-dev --optimize-autoloader --no-interaction
+
+            # Generate .env from secrets
+            cat > .env << 'ENVEOF'
+            APP_NAME=AtomicHabits
+            APP_ENV=production
+            APP_KEY=${{ secrets.APP_KEY }}
+            APP_DEBUG=false
+            APP_URL=${{ secrets.APP_URL }}
+            APP_LOCALE=en
+            APP_FALLBACK_LOCALE=en
+            APP_FAKER_LOCALE=en_US
+            APP_MAINTENANCE_DRIVER=file
+            APP_TIMEZONE=America/Caracas
+
+            BCRYPT_ROUNDS=12
+
+            LOG_CHANNEL=stack
+            LOG_STACK=single
+            LOG_DEPRECATIONS_CHANNEL=null
+            LOG_LEVEL=warning
+
+            DB_CONNECTION=mysql
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=3306
+            DB_DATABASE=${{ secrets.DB_DATABASE }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+
+            SESSION_DRIVER=database
+            SESSION_LIFETIME=120
+            SESSION_ENCRYPT=false
+            SESSION_PATH=/
+            SESSION_DOMAIN=null
+
+            BROADCAST_CONNECTION=reverb
+            FILESYSTEM_DISK=local
+            QUEUE_CONNECTION=sqs
+            CACHE_STORE=database
+
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION=${{ secrets.AWS_REGION }}
+            AWS_BUCKET=
+            AWS_USE_PATH_STYLE_ENDPOINT=false
+
+            SQS_PREFIX=${{ secrets.SQS_PREFIX }}
+            SQS_QUEUE=${{ secrets.SQS_QUEUE }}
+            SQS_SUFFIX=
+            SQS_REGION=${{ secrets.AWS_REGION }}
+
+            REVERB_APP_ID=${{ secrets.REVERB_APP_ID }}
+            REVERB_APP_KEY=${{ secrets.REVERB_APP_KEY }}
+            REVERB_APP_SECRET=${{ secrets.REVERB_APP_SECRET }}
+            REVERB_HOST=127.0.0.1
+            REVERB_PORT=8080
+            REVERB_SCHEME=http
+            REVERB_SERVER_HOST=127.0.0.1
+            REVERB_SERVER_PORT=8080
+
+            VITE_REVERB_APP_KEY=${{ secrets.REVERB_APP_KEY }}
+            VITE_REVERB_HOST=${{ secrets.APP_URL }}
+            VITE_REVERB_PORT=443
+            VITE_REVERB_SCHEME=https
+
+            AI_PROVIDER=deepseek
+            AI_MODEL=deepseek-chat
+            DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+
+            MAIL_MAILER=log
+
+            VITE_APP_NAME=AtomicHabits
+            ENVEOF
+
+            # Run migrations
+            php artisan migrate --force
+
+            # Cache optimization
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+
+            # Restart queue workers and Reverb
+            php artisan queue:restart
+            sudo supervisorctl restart all
+
+            echo "Deploy completed successfully"
+
+      - name: Upload build assets to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "build/*"
+          target: "/var/www/atomic-habits/public/build"
+          strip_components: 1
+
+      - name: Invalidate CloudFront cache
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create CloudFront invalidation
+        if: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"

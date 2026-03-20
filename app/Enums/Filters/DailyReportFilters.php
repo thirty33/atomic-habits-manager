@@ -2,6 +2,7 @@
 
 namespace App\Enums\Filters;
 
+use App\Filters\DailyReport\DateRangeFilter;
 use App\Filters\DailyReport\MoodFilter;
 use App\Filters\DailyReport\SorterFilter;
 use App\Filters\Filter;
@@ -13,11 +14,14 @@ enum DailyReportFilters: string
 
     case Mood = 'mood';
 
+    case DateRange = 'date_range';
+
     public function create(FilterValue $filter): Filter
     {
         return match ($this) {
             self::Sorter => new SorterFilter(filter: $filter),
             self::Mood => new MoodFilter(filter: $filter),
+            self::DateRange => new DateRangeFilter(filter: $filter),
         };
     }
 }

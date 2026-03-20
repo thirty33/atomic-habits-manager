@@ -118,6 +118,7 @@ final class GetDailyReportsViewModel extends ViewModel implements Datatable
         return array_merge(
             $this->filterService->generateSorterFilter(key: 'sorter'),
             $this->filterService->generateNormalFilter(key: 'mood'),
+            $this->filterService->generateRangeFilter(key: 'date_range', prefix: 'date_range'),
         );
     }
 
@@ -189,6 +190,20 @@ final class GetDailyReportsViewModel extends ViewModel implements Datatable
     public function filterFields(): array
     {
         return app(FormFieldsGenerator::class)
+            ->addField(
+                (new DateField(
+                    name: 'date_range_from',
+                    label: 'Desde',
+                    max: now()->toDateString(),
+                ))->colSpan(6)
+            )
+            ->addField(
+                (new DateField(
+                    name: 'date_range_to',
+                    label: 'Hasta',
+                    max: now()->toDateString(),
+                ))->colSpan(6)
+            )
             ->addField(
                 new SelectField(
                     name: 'mood',

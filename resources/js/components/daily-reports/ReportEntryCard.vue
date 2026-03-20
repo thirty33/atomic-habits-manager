@@ -5,17 +5,15 @@ export default {
 </script>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import { STATUS_CONFIG } from '@/constants/reportEntryStatus.js';
 
 const props = defineProps({
     entry: { type: Object, required: true },
-    habits: { type: Array, default: () => [] },
     index: { type: Number, required: true },
-    errors: { type: Object, default: () => ({}) },
 });
 
-const emit = defineEmits(['update', 'remove']);
+const store = inject('reportStore');
 
 const habitSelectValue = computed(() => {
     if (props.entry.custom_activity !== null && props.entry.custom_activity !== undefined && !props.entry.habit_id) return 'free';
@@ -27,16 +25,16 @@ const habitSelectValue = computed(() => {
 const cardBorderColor = computed(() => props.entry.habit?.color ?? '#e5e7eb');
 
 function update(field, value) {
-    emit('update', props.index, { [field]: value });
+    store.updateEntry(props.index, { [field]: value });
 }
 
 function onHabitChange(event) {
     const val = event.target.value;
     if (val === 'free') {
-        emit('update', props.index, { habit_id: null, habit_occurrence_id: null, custom_activity: '', habit: null });
+        store.updateEntry(props.index, { habit_id: null, habit_occurrence_id: null, custom_activity: '', habit: null });
     } else if (val) {
-        const habit = props.habits.find(h => h.habit_id === Number(val));
-        emit('update', props.index, {
+        const habit = store.state.habits.find(h => h.habit_id === Number(val));
+        store.updateEntry(props.index, {
             habit_id: Number(val),
             habit_occurrence_id: null,
             custom_activity: null,
@@ -47,7 +45,7 @@ function onHabitChange(event) {
 
 function errorFor(field) {
     const key = `entries.${props.index}.${field}`;
-    return props.errors[key]?.[0] ?? null;
+    return store.state.errors[key]?.[0] ?? null;
 }
 </script>
 
@@ -68,7 +66,7 @@ function errorFor(field) {
                         <option value="" disabled>Seleccionar actividad...</option>
                         <optgroup label="Mis hábitos">
                             <option
-                                v-for="habit in habits"
+                                v-for="habit in store.state.habits"
                                 :key="habit.habit_id"
                                 :value="String(habit.habit_id)"
                             >
@@ -81,7 +79,7 @@ function errorFor(field) {
                 </div>
 
                 <button
-                    @click="$emit('remove', index)"
+                    @click="store.removeEntry(index)"
                     class="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                     title="Eliminar entrada"
                 >

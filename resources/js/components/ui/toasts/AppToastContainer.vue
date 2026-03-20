@@ -52,6 +52,11 @@ const removeToast = inject('removeToast');
     flex-direction: column;
     align-items: flex-end;
     gap: 1em;
+    pointer-events: none;
+}
+
+.toast-container > * {
+    pointer-events: auto;
 }
 
 @media (max-width: 640px) {

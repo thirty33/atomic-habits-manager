@@ -1,0 +1,527 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Infraestructura para Atomic Habits Manager: EC2, Security Group,
+  Elastic IP, SQS + DLQ, conectividad RDS, y distribucion CloudFront.
+
+# ==============================================================================
+# PARAMETERS
+# ==============================================================================
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Ambiente de despliegue.
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+    Description: >
+      t3.micro (1 vCPU, 1GB) es suficiente para inicio.
+      Escalar a t3.small (2GB) si PHP-FPM necesita mas workers.
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Key Pair para acceso SSH al EC2.
+
+  ProjectName:
+    Type: String
+    Default: atomic-habits
+    Description: Nombre del proyecto. Se usa en directorios, tags y nombres de recursos.
+
+  ProjectDomain:
+    Type: String
+    Description: Dominio del proyecto (ej. atomichabits.app). Se usa en el VirtualHost.
+
+  ProjectUser:
+    Type: String
+    Default: deployer
+    Description: Usuario Linux dueno del proyecto.
+
+  ProjectUserPassword:
+    Type: String
+    NoEcho: true
+    Description: Password del usuario Linux.
+
+  PHPVersion:
+    Type: String
+    Default: '8.4'
+    AllowedValues:
+      - '8.2'
+      - '8.3'
+      - '8.4'
+    Description: Version de PHP a instalar.
+
+  SwapSizeGB:
+    Type: Number
+    Default: 2
+    AllowedValues:
+      - 1
+      - 2
+      - 4
+    Description: Tamano del swap en GB.
+
+  NodeMajorVersion:
+    Type: Number
+    Default: 20
+    AllowedValues:
+      - 18
+      - 20
+      - 22
+    Description: Version major de Node.js.
+
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: >
+      VPC donde se crea el EC2. DEBE ser la misma VPC donde vive la
+      instancia RDS para que el EC2 pueda conectarse al puerto 3306.
+
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet publica dentro de la VPC.
+
+  RDSSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: >
+      Security Group de la instancia RDS. Se le agrega automaticamente
+      una regla de ingreso en el puerto 3306 desde el SG del nuevo EC2.
+
+# ==============================================================================
+# RESOURCES
+# ==============================================================================
+Resources:
+
+  # ----------------------------------------------------------------------------
+  # SECURITY GROUP — EC2
+  # ----------------------------------------------------------------------------
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${ProjectName}-${Environment} EC2 security group'
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS (app + WebSockets via proxy)
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${Environment}-sg'
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # RDS INGRESS RULE — Permite conexion MySQL desde el EC2
+  # ----------------------------------------------------------------------------
+  RDSIngressFromEC2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref RDSSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      SourceSecurityGroupId: !Ref EC2SecurityGroup
+      Description: !Sub 'Allow MySQL from ${ProjectName}-${Environment} EC2'
+
+  # ----------------------------------------------------------------------------
+  # ELASTIC IP
+  # ----------------------------------------------------------------------------
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${Environment}-eip'
+        - Key: Project
+          Value: !Ref ProjectName
+
+  ElasticIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref EC2Instance
+      EIP: !Ref ElasticIP
+
+  # ----------------------------------------------------------------------------
+  # EC2 INSTANCE
+  # ----------------------------------------------------------------------------
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      # Ubuntu 24.04 LTS us-west-2 (actualizar si cambia la region)
+      ImageId: ami-0a38c8532f5984ab4
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${Environment}-server'
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          exec > /var/log/userdata.log 2>&1
+          echo "=== Inicio UserData: $(date) ==="
+
+          export DEBIAN_FRONTEND=noninteractive
+
+          # =============================================================
+          # 1. ACTUALIZAR SISTEMA
+          # =============================================================
+          apt-get update -y
+          apt-get upgrade -y
+
+          # =============================================================
+          # 2. CREAR USUARIO DEL PROYECTO
+          # =============================================================
+          useradd -m -s /bin/bash -G sudo,www-data ${ProjectUser}
+          echo "${ProjectUser}:${ProjectUserPassword}" | chpasswd
+
+          mkdir -p /home/${ProjectUser}/.ssh
+          cp /home/ubuntu/.ssh/authorized_keys /home/${ProjectUser}/.ssh/
+          chown -R ${ProjectUser}:${ProjectUser} /home/${ProjectUser}/.ssh
+          chmod 700 /home/${ProjectUser}/.ssh
+          chmod 600 /home/${ProjectUser}/.ssh/authorized_keys
+
+          # =============================================================
+          # 3. INSTALAR APACHE + MODULOS
+          # =============================================================
+          apt-get install -y apache2
+          systemctl enable apache2
+
+          a2enmod rewrite ssl headers proxy proxy_http proxy_wstunnel
+          a2dismod mpm_prefork || true
+          a2enmod mpm_event
+
+          sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+          a2dissite 000-default.conf
+
+          # =============================================================
+          # 4. INSTALAR PHP-FPM (NO mod_php)
+          # =============================================================
+          add-apt-repository ppa:ondrej/php -y
+          apt-get update -y
+          apt-get install -y \
+            php${PHPVersion}-fpm \
+            php${PHPVersion}-cli \
+            php${PHPVersion}-curl \
+            php${PHPVersion}-gd \
+            php${PHPVersion}-mbstring \
+            php${PHPVersion}-zip \
+            php${PHPVersion}-mysql \
+            php${PHPVersion}-xml \
+            php${PHPVersion}-intl \
+            php${PHPVersion}-bcmath \
+            php${PHPVersion}-readline \
+            php${PHPVersion}-opcache
+
+          # Habilitar PHP-FPM con Apache
+          a2enmod proxy_fcgi setenvif
+          a2enconf php${PHPVersion}-fpm
+
+          systemctl enable php${PHPVersion}-fpm
+          systemctl start php${PHPVersion}-fpm
+
+          update-alternatives --set php /usr/bin/php${PHPVersion}
+
+          # =============================================================
+          # 5. CONFIGURAR OPCACHE
+          # =============================================================
+          cat > /etc/php/${PHPVersion}/fpm/conf.d/10-opcache-custom.ini << 'OPCACHE'
+          opcache.enable=1
+          opcache.memory_consumption=128
+          opcache.max_accelerated_files=10000
+          opcache.revalidate_freq=60
+          opcache.save_comments=1
+          opcache.jit=off
+          OPCACHE
+
+          # =============================================================
+          # 6. INSTALAR COMPOSER
+          # =============================================================
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php composer-setup.php
+          mv composer.phar /usr/local/bin/composer
+          rm composer-setup.php
+          chmod +x /usr/local/bin/composer
+
+          # =============================================================
+          # 7. INSTALAR NODE.JS
+          # =============================================================
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NodeMajorVersion}.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
+          apt-get update -y
+          apt-get install -y nodejs
+
+          # =============================================================
+          # 8. INSTALAR MYSQL CLIENT + SUPERVISOR + CERTBOT
+          # =============================================================
+          apt-get install -y mysql-client supervisor certbot python3-certbot-apache
+
+          systemctl enable supervisor
+          systemctl start supervisor
+
+          # =============================================================
+          # 9. CREAR DIRECTORIO DEL PROYECTO
+          # =============================================================
+          mkdir -p /var/www/${ProjectName}
+          chown -R ${ProjectUser}:www-data /var/www/${ProjectName}
+
+          # =============================================================
+          # 10. CREAR VIRTUALHOST APACHE CON PROXY PARA REVERB
+          # =============================================================
+          cat > /etc/apache2/sites-available/${ProjectName}.conf << 'VHOST'
+          <VirtualHost *:80>
+              ServerAdmin webmaster@localhost
+              ServerName ${ProjectDomain}
+              ServerAlias www.${ProjectDomain}
+              DocumentRoot /var/www/${ProjectName}/public
+
+              <Directory /var/www/${ProjectName}/public/>
+                  AllowOverride All
+                  Require all granted
+              </Directory>
+
+              # Proxy reverso para Laravel Reverb (WebSockets)
+              ProxyPreserveHost On
+              ProxyPass /app ws://127.0.0.1:8080/app
+              ProxyPassReverse /app ws://127.0.0.1:8080/app
+
+              ErrorLog /var/log/apache2/${ProjectName}-error.log
+              CustomLog /var/log/apache2/${ProjectName}-access.log combined
+          </VirtualHost>
+          VHOST
+
+          a2ensite ${ProjectName}.conf
+
+          # =============================================================
+          # 11. CONFIGURAR MPM EVENT
+          # =============================================================
+          cat > /etc/apache2/mods-available/mpm_event.conf << 'MPM'
+          # PHP-FPM + mpm_event: cada conexion usa ~20-30 MiB (vs 100-120 con prefork)
+          StartServers            2
+          MinSpareThreads         25
+          MaxSpareThreads         75
+          ThreadLimit             64
+          ThreadsPerChild         25
+          MaxRequestWorkers       150
+          MaxConnectionsPerChild  1000
+          MPM
+
+          # =============================================================
+          # 12. CONFIGURAR SWAP
+          # =============================================================
+          fallocate -l ${SwapSizeGB}G /swapfile
+          chmod 600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
+          echo '/swapfile none swap sw 0 0' >> /etc/fstab
+          echo 'vm.swappiness=10' >> /etc/sysctl.conf
+          sysctl vm.swappiness=10
+
+          # =============================================================
+          # 13. REINICIAR SERVICIOS
+          # =============================================================
+          apache2ctl configtest
+          systemctl restart apache2
+          systemctl restart php${PHPVersion}-fpm
+
+          # =============================================================
+          # 14. MENSAJE FINAL
+          # =============================================================
+          echo "=== UserData completado: $(date) ==="
+          echo "PHP-FPM + mpm_event configurado"
+          echo "Supervisor instalado y corriendo"
+          echo "Conectarse como: ssh -i key.pem ${ProjectUser}@<ELASTIC_IP>"
+
+  # ----------------------------------------------------------------------------
+  # SQS — COLA PRINCIPAL
+  # ----------------------------------------------------------------------------
+  AppQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-${Environment}'
+      VisibilityTimeout: 90
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt AppQueueDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # SQS — DEAD LETTER QUEUE
+  # ----------------------------------------------------------------------------
+  AppQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-${Environment}-dlq'
+      MessageRetentionPeriod: 1209600
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # CLOUDFRONT DISTRIBUTION
+  # Origin: EC2 via Elastic IP (HTTP). CloudFront termina SSL.
+  # ----------------------------------------------------------------------------
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn: ElasticIPAssociation
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub '${ProjectName}-${Environment}'
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+
+        Origins:
+          - Id: EC2Origin
+            DomainName: !Ref ElasticIP
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+              OriginReadTimeout: 60
+              OriginKeepaliveTimeout: 5
+
+        # Default: contenido dinamico (Laravel) — sin cache
+        DefaultCacheBehavior:
+          TargetOriginId: EC2Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - PATCH
+            - POST
+            - DELETE
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          # Managed-CachingDisabled
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+          # Managed-AllViewer (forward all headers/cookies/query strings)
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3
+
+        # Assets Vite compilados — cache largo
+        CacheBehaviors:
+          - PathPattern: /build/*
+            TargetOriginId: EC2Origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+            # Managed-CachingOptimized
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+
+          - PathPattern: /favicon.ico
+            TargetOriginId: EC2Origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+
+        # Sin restricciones geograficas
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+
+        # Certificado default de CloudFront (*.cloudfront.net)
+        # Cuando se configure dominio personalizado, agregar ACM cert aqui
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+# ==============================================================================
+# OUTPUTS
+# ==============================================================================
+Outputs:
+  InstanceId:
+    Description: ID de la instancia EC2
+    Value: !Ref EC2Instance
+
+  PublicIP:
+    Description: Elastic IP del servidor
+    Value: !Ref ElasticIP
+
+  SSHCommand:
+    Description: Comando SSH para conectar al servidor
+    Value: !Sub 'ssh -i keys/${KeyName}.pem ${ProjectUser}@${ElasticIP}'
+
+  EC2SecurityGroupId:
+    Description: Security Group del EC2
+    Value: !Ref EC2SecurityGroup
+
+  QueueURL:
+    Description: URL de la cola SQS
+    Value: !Ref AppQueue
+
+  QueueARN:
+    Description: ARN de la cola SQS
+    Value: !GetAtt AppQueue.Arn
+
+  DLQueueURL:
+    Description: URL de la Dead Letter Queue
+    Value: !Ref AppQueueDLQ
+
+  CloudFrontDistributionId:
+    Description: ID de la distribucion CloudFront
+    Value: !Ref CloudFrontDistribution
+
+  CloudFrontDomainName:
+    Description: Dominio de CloudFront (usar como URL hasta configurar dominio propio)
+    Value: !GetAtt CloudFrontDistribution.DomainName
+
+  CloudFrontURL:
+    Description: URL de la app via CloudFront
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'

@@ -23,6 +23,10 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
+# Keys y secrets
+/keys/
+*.pem
+
 # Documentacion interna / datos de estudio
 /docs/*.md
 /screenshots/
