@@ -59,6 +59,7 @@ jobs:
           aws cloudformation create-stack \
             --stack-name ${{ env.STACK_NAME }} \
             --template-body file://infrastructure/cloudformation.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
             --parameters \
               ParameterKey=Environment,ParameterValue=prod \
               ParameterKey=InstanceType,ParameterValue=t3.micro \
@@ -66,10 +67,15 @@ jobs:
               ParameterKey=ProjectName,ParameterValue=atomic-habits \
               ParameterKey=ProjectDomain,ParameterValue=${{ secrets.PROJECT_DOMAIN }} \
               ParameterKey=ProjectUser,ParameterValue=deployer \
-              ParameterKey=ProjectUserPassword,ParameterValue=${{ secrets.PROJECT_USER_PASSWORD }} \
+              ParameterKey=ProjectUserPassword,ParameterValue='${{ secrets.PROJECT_USER_PASSWORD }}' \
               ParameterKey=VPCId,ParameterValue=${{ secrets.AWS_VPC_ID }} \
               ParameterKey=SubnetId,ParameterValue=${{ secrets.AWS_SUBNET_ID }} \
-              ParameterKey=RDSSecurityGroupId,ParameterValue=${{ secrets.AWS_RDS_SECURITY_GROUP_ID }}
+              ParameterKey=RDSSecurityGroupId,ParameterValue=${{ secrets.AWS_RDS_SECURITY_GROUP_ID }} \
+              ParameterKey=RDSEndpoint,ParameterValue=${{ secrets.DB_HOST }} \
+              ParameterKey=RDSAdminPassword,ParameterValue='${{ secrets.RDS_ADMIN_PASSWORD }}' \
+              ParameterKey=AppDBName,ParameterValue=atomic_habits \
+              ParameterKey=AppDBUser,ParameterValue=atomic_habits \
+              ParameterKey=AppDBPassword,ParameterValue='${{ secrets.DB_PASSWORD }}'
 
           echo "Waiting for stack creation..."
           aws cloudformation wait stack-create-complete \
@@ -83,6 +89,7 @@ jobs:
           aws cloudformation update-stack \
             --stack-name ${{ env.STACK_NAME }} \
             --template-body file://infrastructure/cloudformation.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
             --parameters \
               ParameterKey=Environment,UsePreviousValue=true \
               ParameterKey=InstanceType,UsePreviousValue=true \
@@ -94,6 +101,11 @@ jobs:
               ParameterKey=VPCId,UsePreviousValue=true \
               ParameterKey=SubnetId,UsePreviousValue=true \
               ParameterKey=RDSSecurityGroupId,UsePreviousValue=true \
+              ParameterKey=RDSEndpoint,UsePreviousValue=true \
+              ParameterKey=RDSAdminPassword,UsePreviousValue=true \
+              ParameterKey=AppDBName,UsePreviousValue=true \
+              ParameterKey=AppDBUser,UsePreviousValue=true \
+              ParameterKey=AppDBPassword,UsePreviousValue=true \
           && aws cloudformation wait stack-update-complete \
             --stack-name ${{ env.STACK_NAME }} \
           && echo "Stack updated successfully" \

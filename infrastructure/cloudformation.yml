@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  Infraestructura para Atomic Habits Manager: EC2, Security Group,
-  Elastic IP, SQS + DLQ, conectividad RDS, y distribucion CloudFront.
+  Infraestructura para Atomic Habits Manager: EC2 con Instance Profile (SQS),
+  Security Group, Elastic IP, SQS + DLQ, conectividad RDS, y CloudFront.
 
 # ==============================================================================
 # PARAMETERS
@@ -93,10 +93,84 @@ Parameters:
       Security Group de la instancia RDS. Se le agrega automaticamente
       una regla de ingreso en el puerto 3306 desde el SG del nuevo EC2.
 
+  # --- RDS / Database ---
+  RDSEndpoint:
+    Type: String
+    Description: Endpoint de la instancia RDS.
+
+  RDSAdminUser:
+    Type: String
+    Default: admin
+    Description: Usuario administrador de RDS.
+
+  RDSAdminPassword:
+    Type: String
+    NoEcho: true
+    Description: Password del administrador de RDS.
+
+  AppDBName:
+    Type: String
+    Default: atomic_habits
+    Description: Nombre de la base de datos a crear.
+
+  AppDBUser:
+    Type: String
+    Default: atomic_habits
+    Description: Usuario de la base de datos de la app.
+
+  AppDBPassword:
+    Type: String
+    NoEcho: true
+    Description: Password del usuario de la base de datos de la app.
+
 # ==============================================================================
 # RESOURCES
 # ==============================================================================
 Resources:
+
+  # ----------------------------------------------------------------------------
+  # IAM ROLE + INSTANCE PROFILE — Permisos SQS para el EC2
+  # El EC2 obtiene credenciales temporales automaticamente sin access keys.
+  # ----------------------------------------------------------------------------
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-${Environment}-ec2-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${ProjectName}-${Environment}-sqs-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:ChangeMessageVisibility
+                Resource:
+                  - !GetAtt AppQueue.Arn
+                  - !GetAtt AppQueueDLQ.Arn
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${ProjectName}-${Environment}-ec2-profile'
+      Roles:
+        - !Ref EC2Role
 
   # ----------------------------------------------------------------------------
   # SECURITY GROUP — EC2
@@ -163,16 +237,52 @@ Resources:
       EIP: !Ref ElasticIP
 
   # ----------------------------------------------------------------------------
+  # SQS — COLA PRINCIPAL
+  # ----------------------------------------------------------------------------
+  AppQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-${Environment}'
+      VisibilityTimeout: 90
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt AppQueueDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # SQS — DEAD LETTER QUEUE
+  # ----------------------------------------------------------------------------
+  AppQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-${Environment}-dlq'
+      MessageRetentionPeriod: 1209600
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
   # EC2 INSTANCE
   # ----------------------------------------------------------------------------
   EC2Instance:
     Type: AWS::EC2::Instance
+    DependsOn:
+      - RDSIngressFromEC2
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
       SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - !Ref EC2SecurityGroup
+      IamInstanceProfile: !Ref EC2InstanceProfile
       # Ubuntu 24.04 LTS us-west-2 (2026-03-20)
       ImageId: ami-019e303fb672172fc
       Tags:
@@ -190,6 +300,8 @@ Resources:
           echo "=== Inicio UserData: $(date) ==="
 
           export DEBIAN_FRONTEND=noninteractive
+          export HOME=/root
+          export COMPOSER_HOME=/root/.composer
 
           # =============================================================
           # 1. ACTUALIZAR SISTEMA
@@ -241,7 +353,6 @@ Resources:
             php${PHPVersion}-readline \
             php${PHPVersion}-opcache
 
-          # Habilitar PHP-FPM con Apache
           a2enmod proxy_fcgi setenvif
           a2enconf php${PHPVersion}-fpm
 
@@ -264,10 +375,7 @@ Resources:
 
           # =============================================================
           # 6. INSTALAR COMPOSER
-          # HOME debe estar definido para que Composer funcione
           # =============================================================
-          export HOME=/root
-          export COMPOSER_HOME=/root/.composer
           php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
           php composer-setup.php
           mv composer.phar /usr/local/bin/composer
@@ -293,13 +401,25 @@ Resources:
           systemctl start supervisor
 
           # =============================================================
-          # 9. CREAR DIRECTORIO DEL PROYECTO
+          # 9. CREAR BASE DE DATOS EN RDS
+          # =============================================================
+          echo "Creando base de datos en RDS..."
+          mysql -h ${RDSEndpoint} -u ${RDSAdminUser} -p'${RDSAdminPassword}' -e "
+            CREATE DATABASE IF NOT EXISTS ${AppDBName} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE USER IF NOT EXISTS '${AppDBUser}'@'%' IDENTIFIED BY '${AppDBPassword}';
+            GRANT ALL PRIVILEGES ON ${AppDBName}.* TO '${AppDBUser}'@'%';
+            FLUSH PRIVILEGES;
+          "
+          echo "Base de datos ${AppDBName} creada exitosamente"
+
+          # =============================================================
+          # 10. CREAR DIRECTORIO DEL PROYECTO
           # =============================================================
           mkdir -p /var/www/${ProjectName}
           chown -R ${ProjectUser}:www-data /var/www/${ProjectName}
 
           # =============================================================
-          # 10. CREAR VIRTUALHOST APACHE CON PROXY PARA REVERB
+          # 11. CREAR VIRTUALHOST APACHE CON PROXY PARA REVERB
           # =============================================================
           cat > /etc/apache2/sites-available/${ProjectName}.conf << 'VHOST'
           <VirtualHost *:80>
@@ -326,10 +446,9 @@ Resources:
           a2ensite ${ProjectName}.conf
 
           # =============================================================
-          # 11. CONFIGURAR MPM EVENT
+          # 12. CONFIGURAR MPM EVENT
           # =============================================================
           cat > /etc/apache2/mods-available/mpm_event.conf << 'MPM'
-          # PHP-FPM + mpm_event: cada conexion usa ~20-30 MiB (vs 100-120 con prefork)
           StartServers            2
           MinSpareThreads         25
           MaxSpareThreads         75
@@ -340,7 +459,7 @@ Resources:
           MPM
 
           # =============================================================
-          # 12. CONFIGURAR SWAP
+          # 13. CONFIGURAR SWAP
           # =============================================================
           fallocate -l ${SwapSizeGB}G /swapfile
           chmod 600 /swapfile
@@ -351,56 +470,25 @@ Resources:
           sysctl vm.swappiness=10
 
           # =============================================================
-          # 13. REINICIAR SERVICIOS
+          # 14. REINICIAR SERVICIOS
           # =============================================================
           apache2ctl configtest
           systemctl restart apache2
           systemctl restart php${PHPVersion}-fpm
 
           # =============================================================
-          # 14. MENSAJE FINAL
+          # 15. MENSAJE FINAL
           # =============================================================
           echo "=== UserData completado: $(date) ==="
           echo "PHP-FPM + mpm_event configurado"
           echo "Supervisor instalado y corriendo"
+          echo "Base de datos ${AppDBName} creada en RDS"
+          echo "Instance Profile con permisos SQS asociado"
           echo "Conectarse como: ssh -i key.pem ${ProjectUser}@<ELASTIC_IP>"
 
   # ----------------------------------------------------------------------------
-  # SQS — COLA PRINCIPAL
-  # ----------------------------------------------------------------------------
-  AppQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub '${ProjectName}-${Environment}'
-      VisibilityTimeout: 90
-      MessageRetentionPeriod: 345600
-      ReceiveMessageWaitTimeSeconds: 20
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt AppQueueDLQ.Arn
-        maxReceiveCount: 3
-      Tags:
-        - Key: Project
-          Value: !Ref ProjectName
-        - Key: Environment
-          Value: !Ref Environment
-
-  # ----------------------------------------------------------------------------
-  # SQS — DEAD LETTER QUEUE
-  # ----------------------------------------------------------------------------
-  AppQueueDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub '${ProjectName}-${Environment}-dlq'
-      MessageRetentionPeriod: 1209600
-      Tags:
-        - Key: Project
-          Value: !Ref ProjectName
-        - Key: Environment
-          Value: !Ref Environment
-
-  # ----------------------------------------------------------------------------
   # CLOUDFRONT DISTRIBUTION
-  # Origin: EC2 via Elastic IP (HTTP). CloudFront termina SSL.
+  # Origin: EC2 via PublicDnsName (HTTP). CloudFront termina SSL.
   # ----------------------------------------------------------------------------
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -422,7 +510,6 @@ Resources:
               OriginReadTimeout: 60
               OriginKeepaliveTimeout: 5
 
-        # Default: contenido dinamico (Laravel) — sin cache
         DefaultCacheBehavior:
           TargetOriginId: EC2Origin
           ViewerProtocolPolicy: redirect-to-https
@@ -438,12 +525,9 @@ Resources:
             - GET
             - HEAD
           Compress: true
-          # Managed-CachingDisabled
           CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
-          # Managed-AllViewer (forward all headers/cookies/query strings)
           OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3
 
-        # Assets Vite compilados — cache largo
         CacheBehaviors:
           - PathPattern: /build/*
             TargetOriginId: EC2Origin
@@ -455,7 +539,6 @@ Resources:
               - GET
               - HEAD
             Compress: true
-            # Managed-CachingOptimized
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
 
           - PathPattern: /favicon.ico
@@ -470,13 +553,10 @@ Resources:
             Compress: true
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
 
-        # Sin restricciones geograficas
         Restrictions:
           GeoRestriction:
             RestrictionType: none
 
-        # Certificado default de CloudFront (*.cloudfront.net)
-        # Cuando se configure dominio personalizado, agregar ACM cert aqui
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
 
@@ -505,6 +585,10 @@ Outputs:
   EC2SecurityGroupId:
     Description: Security Group del EC2
     Value: !Ref EC2SecurityGroup
+
+  EC2RoleName:
+    Description: Nombre del IAM Role del EC2
+    Value: !Ref EC2Role
 
   QueueURL:
     Description: URL de la cola SQS
