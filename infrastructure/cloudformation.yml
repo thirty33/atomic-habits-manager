@@ -270,6 +270,39 @@ Resources:
           Value: !Ref Environment
 
   # ----------------------------------------------------------------------------
+  # SQS — COLA LOCAL (para desarrollo)
+  # ----------------------------------------------------------------------------
+  AppQueueLocal:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-local'
+      VisibilityTimeout: 300
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt AppQueueLocalDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: local
+
+  # ----------------------------------------------------------------------------
+  # SQS — DEAD LETTER QUEUE LOCAL
+  # ----------------------------------------------------------------------------
+  AppQueueLocalDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-local-dlq'
+      MessageRetentionPeriod: 1209600
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: local
+
+  # ----------------------------------------------------------------------------
   # EC2 INSTANCE
   # ----------------------------------------------------------------------------
   EC2Instance:
@@ -616,3 +649,11 @@ Outputs:
   CloudFrontURL:
     Description: URL de la app via CloudFront
     Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+
+  LocalQueueURL:
+    Description: URL de la cola SQS local (para desarrollo)
+    Value: !Ref AppQueueLocal
+
+  LocalDLQueueURL:
+    Description: URL de la DLQ local
+    Value: !Ref AppQueueLocalDLQ

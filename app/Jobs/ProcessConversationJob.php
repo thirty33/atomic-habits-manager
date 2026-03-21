@@ -33,6 +33,8 @@ class ProcessConversationJob implements ShouldBeUnique, ShouldQueue
             return;
         }
 
+        auth()->loginUsingId($this->conversation->user_id);
+
         $lastMessage = $this->conversation->latestMessage;
 
         \Log::info('[ProcessConversationJob] Debug prompt', [
