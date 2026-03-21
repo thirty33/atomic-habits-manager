@@ -41,6 +41,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment('production')) {
+            \URL::forceScheme('https');
+        }
+
         Habit::observe(HabitObserver::class);
         HabitSchedule::observe(HabitScheduleObserver::class);
         RateLimiter::for('api', function (Request $request) {
