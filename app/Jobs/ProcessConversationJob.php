@@ -14,7 +14,9 @@ class ProcessConversationJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    public int $uniqueFor = 60;
+    public int $timeout = 240;
+
+    public int $uniqueFor = 300;
 
     public function __construct(
         public Conversation $conversation,

@@ -10,6 +10,10 @@ class BatchGenerateOccurrencesJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $timeout = 60;
+
+    public int $tries = 3;
+
     /**
      * @param  array<int, int>  $habitIds
      */
