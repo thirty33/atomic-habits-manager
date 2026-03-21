@@ -291,6 +291,9 @@ jobs:
             php artisan queue:restart
             sudo supervisorctl restart all
 
+            # Ensure cron is configured (idempotent)
+            (crontab -l 2>/dev/null | grep -v 'schedule:run'; echo "* * * * * cd /var/www/atomic-habits && php artisan schedule:run >> /dev/null 2>&1") | crontab -
+
             echo "Deploy completed successfully"
 
       - name: Invalidate CloudFront cache
