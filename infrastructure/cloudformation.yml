@@ -318,6 +318,8 @@ Resources:
       IamInstanceProfile: !Ref EC2InstanceProfile
       # Ubuntu 24.04 LTS us-west-2 (2026-03-20)
       ImageId: ami-019e303fb672172fc
+      CreditSpecification:
+        CPUCredits: standard
       Tags:
         - Key: Name
           Value: !Sub '${ProjectName}-${Environment}-server'
