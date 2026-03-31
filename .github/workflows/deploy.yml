@@ -154,6 +154,31 @@ jobs:
     needs: [infrastructure, build]
     runs-on: ubuntu-latest
     steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Allow SSH from GitHub runner
+        id: ssh_access
+        run: |
+          RUNNER_IP=$(curl -s https://checkip.amazonaws.com)
+          SG_ID=$(aws cloudformation describe-stack-resource \
+            --stack-name ${{ env.STACK_NAME }} \
+            --logical-resource-id EC2SecurityGroup \
+            --query 'StackResourceDetail.PhysicalResourceId' \
+            --output text)
+          aws ec2 authorize-security-group-ingress \
+            --group-id "$SG_ID" \
+            --protocol tcp \
+            --port 22 \
+            --cidr "${RUNNER_IP}/32"
+          echo "runner_ip=$RUNNER_IP" >> $GITHUB_OUTPUT
+          echo "sg_id=$SG_ID" >> $GITHUB_OUTPUT
+          echo "Allowed SSH from $RUNNER_IP to $SG_ID"
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
@@ -296,13 +321,6 @@ jobs:
 
             echo "Deploy completed successfully"
 
-      - name: Invalidate CloudFront cache
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
       - name: Create CloudFront invalidation
         env:
           CF_DISTRIBUTION_ID: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }}
@@ -311,3 +329,14 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
+
+      - name: Revoke SSH from GitHub runner
+        if: always() && steps.ssh_access.outputs.sg_id != ''
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ steps.ssh_access.outputs.sg_id }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr "${{ steps.ssh_access.outputs.runner_ip }}/32" \
+          || true
+          echo "Revoked SSH from ${{ steps.ssh_access.outputs.runner_ip }}"
