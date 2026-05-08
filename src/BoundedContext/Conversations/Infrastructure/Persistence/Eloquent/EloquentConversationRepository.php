@@ -75,6 +75,19 @@ final readonly class EloquentConversationRepository implements ConversationRepos
     }
 
     /**
+     * @return list<int>
+     */
+    public function idsAwaitingAiResponse(): array
+    {
+        return $this->model->newQuery()
+            ->where('status', \Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationStatus::Active->value)
+            ->whereHas('latestMessage', fn ($q) => $q->where('role', \Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\MessageRole::User->value))
+            ->pluck('conversation_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function toAttributes(Conversation $conversation): array

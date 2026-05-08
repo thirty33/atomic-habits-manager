@@ -46,4 +46,17 @@ interface ConversationRepository
      * publishes any domain events it accumulated (e.g. ConversationWasDeleted).
      */
     public function delete(Conversation $conversation): void;
+
+    /**
+     * Conversations whose latest message is from the user (i.e. waiting
+     * for the AI to respond). Returned as primitive ids to avoid full
+     * aggregate hydration when the consumer only dispatches a job.
+     *
+     * Used by the cron-only safety net `atomic-ia:process` (deprecated
+     * in fase 2: the line is removed from the scheduler but the command
+     * stays in disk for rapid rollback during the verification window).
+     *
+     * @return list<int>
+     */
+    public function idsAwaitingAiResponse(): array;
 }
