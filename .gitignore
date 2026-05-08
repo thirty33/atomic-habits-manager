@@ -28,5 +28,18 @@ Thumbs.db
 *.pem
 
 # Documentacion interna / datos de estudio
-/docs/*.md
+/docs/
+
+# Test/debug artifacts
 /screenshots/
+/.playwright-mcp/
+/*.png
+
+# Claude Code y herramientas IA — internal
+/.claude/logs/
+/.claude/plans/
+/.ai/
+
+# Backups locales
+*.old
+*.delete
