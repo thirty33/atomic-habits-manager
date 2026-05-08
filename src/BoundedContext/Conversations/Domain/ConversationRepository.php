@@ -40,4 +40,10 @@ interface ConversationRepository
      * shape) on purpose.
      */
     public function findForUser(ConversationId $id, UserId $userId): ?Conversation;
+
+    /**
+     * Soft-deletes the persisted row corresponding to the aggregate and
+     * publishes any domain events it accumulated (e.g. ConversationWasDeleted).
+     */
+    public function delete(Conversation $conversation): void;
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\Conversations\Domain;
 
+use Core\BoundedContext\Conversations\Domain\Events\ConversationWasDeleted;
 use Core\BoundedContext\Conversations\Domain\Events\ConversationWasStarted;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationStatus;
@@ -106,6 +107,18 @@ final class Conversation extends AggregateRoot
         }
 
         $this->lastMessageAt = $at;
+    }
+
+    public function delete(): void
+    {
+        if ($this->conversationId === null) {
+            throw new LogicException('Cannot delete a Conversation that has no id.');
+        }
+
+        $this->record(new ConversationWasDeleted(
+            conversationId: $this->conversationId->value(),
+            userId: $this->userId->value(),
+        ));
     }
 
     public function isNew(): bool

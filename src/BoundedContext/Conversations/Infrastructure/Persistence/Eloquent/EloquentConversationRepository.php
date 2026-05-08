@@ -57,6 +57,23 @@ final readonly class EloquentConversationRepository implements ConversationRepos
         return $row !== null ? $this->toDomain($row) : null;
     }
 
+    public function delete(Conversation $conversation): void
+    {
+        DB::transaction(function () use ($conversation) {
+            $id = $conversation->conversationId();
+
+            if ($id === null) {
+                throw new \LogicException('Cannot delete a Conversation without id.');
+            }
+
+            $this->model->newQuery()
+                ->where('conversation_id', $id->value())
+                ->delete();
+
+            $this->bus->publish(...$conversation->pullDomainEvents());
+        });
+    }
+
     /**
      * @return array<string, mixed>
      */
