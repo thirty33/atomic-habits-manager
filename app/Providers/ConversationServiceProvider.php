@@ -4,12 +4,27 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Core\BoundedContext\Conversations\Application\Actions\ApproveAssistantMessage;
+use Core\BoundedContext\Conversations\Application\Actions\BanAssistantMessage;
+use Core\BoundedContext\Conversations\Application\Ai\AiModerationProvider;
 use Core\BoundedContext\Conversations\Application\Ai\AiResponseProvider;
+use Core\BoundedContext\Conversations\Application\Broadcasting\ConversationBroadcaster;
+use Core\BoundedContext\Conversations\Application\EventHandlers\BroadcastConversationStatus;
+use Core\BoundedContext\Conversations\Application\EventHandlers\PostFallbackOnBan;
 use Core\BoundedContext\Conversations\Application\EventHandlers\ScheduleAiResponse;
 use Core\BoundedContext\Conversations\Domain\ConversationRepository;
+use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasApproved;
+use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasBanned;
+use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasPosted;
+use Core\BoundedContext\Conversations\Domain\Events\ConversationWasBanned;
+use Core\BoundedContext\Conversations\Domain\Events\ConversationWasDeleted;
+use Core\BoundedContext\Conversations\Domain\Events\ConversationWasStarted;
+use Core\BoundedContext\Conversations\Domain\Events\FallbackMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\Events\UserMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\MessageRepository;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\LaravelAiModerationProvider;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\LaravelAiResponseProvider;
+use Core\BoundedContext\Conversations\Infrastructure\Broadcasting\LaravelEchoConversationBroadcaster;
 use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\EloquentConversationRepository;
 use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\EloquentMessageRepository;
 use Core\Shared\Infrastructure\Events\Bus\DomainEventSubscriptions;
@@ -19,8 +34,8 @@ use Illuminate\Support\ServiceProvider;
 
 /**
  * Bindings of the Conversations BC Domain layer to its concrete Eloquent
- * adapters, plus registration of cross-BC subscriptions for the Domain
- * Event bus, plus the AiResponseProvider adapter that drives the LLM.
+ * adapters, plus AI providers, broadcasting, domain-event class registry,
+ * and listener subscriptions.
  */
 final class ConversationServiceProvider extends ServiceProvider
 {
@@ -28,6 +43,7 @@ final class ConversationServiceProvider extends ServiceProvider
     public array $bindings = [
         ConversationRepository::class => EloquentConversationRepository::class,
         MessageRepository::class => EloquentMessageRepository::class,
+        ConversationBroadcaster::class => LaravelEchoConversationBroadcaster::class,
     ];
 
     public function register(): void
@@ -42,25 +58,28 @@ final class ConversationServiceProvider extends ServiceProvider
             );
         });
 
+        $this->app->bind(AiModerationProvider::class, function ($app) {
+            return new LaravelAiModerationProvider(
+                provider: (string) config('ai.default'),
+                model: (string) config('ai.model'),
+                approve: $app->make(ApproveAssistantMessage::class),
+                ban: $app->make(BanAssistantMessage::class),
+            );
+        });
+
         $registry = $this->app->make(DomainEventClassRegistry::class);
-        $registry->register(
-            \Core\BoundedContext\Conversations\Domain\Events\ConversationWasStarted::eventName(),
-            \Core\BoundedContext\Conversations\Domain\Events\ConversationWasStarted::class,
-        );
-        $registry->register(
-            \Core\BoundedContext\Conversations\Domain\Events\ConversationWasDeleted::eventName(),
-            \Core\BoundedContext\Conversations\Domain\Events\ConversationWasDeleted::class,
-        );
-        $registry->register(
-            \Core\BoundedContext\Conversations\Domain\Events\UserMessageWasPosted::eventName(),
-            \Core\BoundedContext\Conversations\Domain\Events\UserMessageWasPosted::class,
-        );
-        $registry->register(
-            \Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasPosted::eventName(),
-            \Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasPosted::class,
-        );
+        $registry->register(ConversationWasStarted::eventName(), ConversationWasStarted::class);
+        $registry->register(ConversationWasDeleted::eventName(), ConversationWasDeleted::class);
+        $registry->register(ConversationWasBanned::eventName(), ConversationWasBanned::class);
+        $registry->register(UserMessageWasPosted::eventName(), UserMessageWasPosted::class);
+        $registry->register(AssistantMessageWasPosted::eventName(), AssistantMessageWasPosted::class);
+        $registry->register(AssistantMessageWasApproved::eventName(), AssistantMessageWasApproved::class);
+        $registry->register(AssistantMessageWasBanned::eventName(), AssistantMessageWasBanned::class);
+        $registry->register(FallbackMessageWasPosted::eventName(), FallbackMessageWasPosted::class);
 
         $subscriptions = $this->app->make(DomainEventSubscriptions::class);
         $subscriptions->register(UserMessageWasPosted::class, ScheduleAiResponse::class);
+        $subscriptions->register(ConversationWasBanned::class, BroadcastConversationStatus::class);
+        $subscriptions->register(AssistantMessageWasBanned::class, PostFallbackOnBan::class);
     }
 }

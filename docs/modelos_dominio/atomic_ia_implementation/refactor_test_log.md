@@ -65,3 +65,19 @@ SQLSTATE[42S22]: Column not found: 1054 Unknown column 'deleted_at' in 'where cl
 **¿Respeta DDD?** Sí, como medida transitoria. El observer es Infrastructure y no toca Domain/Application. Cuando flujos 07/08 introduzcan los listeners `BroadcastApprovedMessage` y `PostFallbackOnBan`, se elimina el observer entero (renombrado a `.php.delete`).
 
 **Pendiente:** flujo 07 elimina la rama Banned; flujo 08 elimina la rama Approved; observer renombrado a `.php.delete` cuando ambas se vayan.
+
+---
+
+## [5] Flow 06 quedó sin sus bindings de producción (silently green tests)
+
+**Síntoma observado:** durante flow 07 inspeccioné `app/Providers/ConversationServiceProvider.php` y descubrí que mis ediciones de flow 06 (binding `AiModerationProvider`, registro de `AssistantMessageWasApproved/Banned` + `ConversationWasBanned` en el `DomainEventClassRegistry`) NO aterrizaron al disco a pesar de que la herramienta reportó éxito.
+
+**Stack/log relevante:** los tests de flow 06 pasaban (34/34) porque cada test usa `$this->app->instance(AiModerationProvider::class, $this->aiModerator)` para inyectar el doble en el contenedor. Cuando un binding NO existe en el provider pero se sobrescribe en el test con `instance(...)`, Laravel acepta la inyección sin quejarse — el test verde es engañoso.
+
+**Causa raíz:** las ediciones a `ConversationServiceProvider` se aplicaron en memoria pero el archivo de disco mantuvo la versión de flow 04. Hipótesis: race condition entre Edit y un proceso externo (probablemente Pint del flow 04 commit) que dejó la versión final del archivo. La verificación que faltó: `git diff` antes del commit.
+
+**Fix aplicado:** flow 07 reescribe el provider completo con TODOS los bindings que deberían haber estado: `AiResponseProvider` (flow 04), `AiModerationProvider` (flow 06), `ConversationBroadcaster` (flow 07), todos los registros de eventos en `DomainEventClassRegistry`, todas las suscripciones (`ScheduleAiResponse`, `BroadcastConversationStatus`, `PostFallbackOnBan`).
+
+**¿Respeta DDD?** Sí. El provider está en Infrastructure (`app/Providers/`), no toca dominio. Las suscripciones declarativas están donde corresponde. Lo que falló fue el proceso de aplicación del cambio, no la arquitectura.
+
+**Pendiente:** lección — verificar `git diff <archivo>` ANTES de cada commit para confirmar que el delta esperado coincide con el delta real. Pint puede deshacer cambios si interactúa mal con ediciones in-flight.

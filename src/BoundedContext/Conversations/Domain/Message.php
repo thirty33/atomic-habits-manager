@@ -7,6 +7,7 @@ namespace Core\BoundedContext\Conversations\Domain;
 use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasApproved;
 use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasBanned;
 use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasPosted;
+use Core\BoundedContext\Conversations\Domain\Events\FallbackMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\Events\UserMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\MessageBody;
@@ -89,6 +90,31 @@ final class Message extends AggregateRoot
             updatedAt: null,
         );
         $message->pendingFactoryEvent = PendingFactoryEvent::AssistantPosted;
+
+        return $message;
+    }
+
+    /**
+     * Fallback assistant message — system-controlled apology emitted
+     * after a ban. Born Approved (bypasses moderation) and tagged with
+     * metadata.fallback=true so the frontend can render it distinctly
+     * if desired.
+     */
+    public static function postFallback(ConversationId $conversationId, MessageBody $body): self
+    {
+        $message = new self(
+            messageId: null,
+            conversationId: $conversationId,
+            role: MessageRole::Assistant,
+            type: MessageType::Text,
+            body: $body,
+            mediaUrl: null,
+            status: MessageStatus::Approved,
+            metadata: ['fallback' => true],
+            createdAt: null,
+            updatedAt: null,
+        );
+        $message->pendingFactoryEvent = PendingFactoryEvent::FallbackPosted;
 
         return $message;
     }
@@ -224,6 +250,11 @@ final class Message extends AggregateRoot
                 body: $this->body->value,
             ),
             PendingFactoryEvent::AssistantPosted => new AssistantMessageWasPosted(
+                messageId: $this->messageId->value(),
+                conversationId: $this->conversationId->value(),
+                body: $this->body->value,
+            ),
+            PendingFactoryEvent::FallbackPosted => new FallbackMessageWasPosted(
                 messageId: $this->messageId->value(),
                 conversationId: $this->conversationId->value(),
                 body: $this->body->value,

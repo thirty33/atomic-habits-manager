@@ -13,4 +13,5 @@ enum PendingFactoryEvent
 {
     case UserPosted;
     case AssistantPosted;
+    case FallbackPosted;
 }

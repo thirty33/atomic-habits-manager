@@ -4,23 +4,17 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
-use App\Actions\CreateFallbackMessageAction;
 use App\Enums\MessageRole;
 use App\Enums\MessageStatus;
 use App\Events\MessageSent;
 use App\Models\Message;
 
 /**
- * Eloquent observer kept alive only for the assistant-message updated
- * branches (Approved → broadcast, Banned → fallback). Both branches are
- * replaced by Domain Event listeners in flows 07 and 08; once those
- * land, this file becomes empty and is renamed to .php.delete.
- *
- * The created branch (which used to dispatch ProcessConversationJob for
- * user messages) is gone — the new path is:
- *   PostUserMessage → MessageRepository.save → UserMessageWasPosted
- *   → Outbox/Relay → DispatchDomainEventHeavyJob → ScheduleAiResponse
- *   → ProcessUserMessageWithAi.
+ * Eloquent observer kept alive only for the Approved → broadcast branch.
+ * The Banned branch was replaced in flow 07 by the PostFallbackOnBan
+ * Domain Event listener; the Approved branch is replaced in flow 08 by
+ * BroadcastApprovedMessage. After flow 08 lands, this file is renamed
+ * to .php.delete.
  */
 class MessageObserver
 {
@@ -36,12 +30,6 @@ class MessageObserver
 
         if ($message->status === MessageStatus::Approved) {
             MessageSent::dispatch($message->conversation, $message);
-
-            return;
-        }
-
-        if ($message->status === MessageStatus::Banned) {
-            CreateFallbackMessageAction::execute($message->conversation);
         }
     }
 }
