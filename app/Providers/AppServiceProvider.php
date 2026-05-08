@@ -28,6 +28,15 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(OccurrenceServiceInterface::class, OccurrenceService::class);
 
+        $this->app->singleton(\Core\Shared\Infrastructure\Events\Outbox\OutboxEntry::class);
+        $this->app->singleton(
+            \Core\Shared\Infrastructure\Events\Outbox\OutboxRepository::class,
+            \Core\Shared\Infrastructure\Events\Outbox\EloquentOutboxRepository::class,
+        );
+        $this->app->singleton(\Core\Shared\Infrastructure\Events\Outbox\DomainEventSerializer::class, \Core\Shared\Infrastructure\Events\Outbox\JsonDomainEventSerializer::class);
+        $this->app->singleton(\Core\Shared\Infrastructure\Events\Outbox\DomainEventClassRegistry::class);
+        $this->app->singleton(\Core\Shared\Infrastructure\Events\Bus\DomainEventSubscriptions::class);
+
         // Cargar Blueprint Macros dinamicamente
         foreach (glob(app_path('Macros/Blueprint/*.php')) as $filename) {
             $filename = basename($filename, '.php');
