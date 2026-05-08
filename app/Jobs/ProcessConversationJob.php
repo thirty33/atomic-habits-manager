@@ -1,51 +1,45 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
-use App\Actions\CreateAssistantMessageAction;
-use App\Enums\ConversationStatus;
-use App\Models\Conversation;
-use App\Services\AtomicIAService;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Core\BoundedContext\Conversations\Application\Actions\ProcessUserMessageWithAi;
+use Core\BoundedContext\Conversations\Application\DTOs\ProcessUserMessageWithAiData;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class ProcessConversationJob implements ShouldBeUnique, ShouldQueue
+/**
+ * Cron-only safety net for the AI-response path.
+ *
+ * Dispatched by ProcessPendingMessagesCommand (atomic-ia:process) once
+ * per minute, NOT by the user-message event path. The event path goes
+ * through the outbox + relay + DispatchDomainEventHeavyJob; this Job is
+ * only kept alive while we verify the relay drains reliably (see flow
+ * 05 deprecation timeline).
+ *
+ * The Use Case is idempotent by aggregate state: if the latest message
+ * is no longer a user message, the call is a no-op.
+ */
+final class ProcessConversationJob implements ShouldQueue
 {
     use Queueable;
 
-    public int $timeout = 240;
+    public int $tries = 2;
 
-    public int $uniqueFor = 300;
+    public int $timeout = 600;
 
-    public function __construct(
-        public Conversation $conversation,
-    ) {}
+    public int $backoff = 300;
 
-    public function uniqueId(): string
+    public function __construct(public int $conversationId)
     {
-        return (string) $this->conversation->conversation_id;
+        $this->onQueue('heavy');
     }
 
-    public function handle(AtomicIAService $service): void
+    public function handle(ProcessUserMessageWithAi $useCase): void
     {
-        if ($this->conversation->status !== ConversationStatus::Active) {
-            return;
-        }
-
-        auth()->loginUsingId($this->conversation->user_id);
-
-        $lastMessage = $this->conversation->latestMessage;
-
-        \Log::info('[ProcessConversationJob] Debug prompt', [
-            'conversation_id' => $this->conversation->conversation_id,
-            'message_id' => $lastMessage->message_id,
-            'role' => $lastMessage->role->value,
-            'body' => $lastMessage->body,
-        ]);
-
-        $response = $service->reply($this->conversation, $lastMessage->body);
-
-        CreateAssistantMessageAction::execute($this->conversation, $response);
+        $useCase(new ProcessUserMessageWithAiData(
+            conversationId: $this->conversationId,
+        ));
     }
 }

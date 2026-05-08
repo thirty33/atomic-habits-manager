@@ -7,6 +7,7 @@ namespace Tests\Feature\Backoffice\AtomicIA;
 use App\Models\User;
 use Core\BoundedContext\Conversations\Application\Actions\PostUserMessage;
 use Core\BoundedContext\Conversations\Application\Actions\StartConversation;
+use Core\BoundedContext\Conversations\Application\Ai\AiResponseProvider;
 use Core\BoundedContext\Conversations\Application\DTOs\PostUserMessageData;
 use Core\BoundedContext\Conversations\Domain\Events\UserMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\Exceptions\ConversationNotFound;
@@ -18,11 +19,20 @@ use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Core\Shared\Domain\Bus\DomainEventBus;
 use Core\Shared\Infrastructure\Events\Bus\SpyDomainEventBus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\InMemoryAiResponseProvider;
 use Tests\TestCase;
 
 final class PostUserMessageTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Avoid hitting the real LLM via the synchronous ScheduleAiResponse
+        // listener that fires after UserMessageWasPosted.
+        $this->app->instance(AiResponseProvider::class, new InMemoryAiResponseProvider);
+    }
 
     public function test_use_case_persists_user_message_with_status_sent_and_records_event(): void
     {

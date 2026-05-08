@@ -37,10 +37,7 @@ final readonly class EloquentMessageRepository implements MessageRepository
 
             if ($isNew) {
                 $message->assignId(MessageId::from((int) $row->getKey()));
-
-                if ($message->role() === MessageRole::User) {
-                    $message->recordUserPostedAfterAssign();
-                }
+                $message->recordPendingFactoryEventAfterAssign();
             }
 
             $this->bus->publish(...$message->pullDomainEvents());

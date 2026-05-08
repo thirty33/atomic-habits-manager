@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\Conversations\Domain;
 
+use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\Events\UserMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\MessageBody;
@@ -28,9 +29,16 @@ use LogicException;
  * The Conversation/Message boundary is by id, not by pointer — Message
  * holds a ConversationId VO. Cross-aggregate consistency lives in Use
  * Cases, not inside the aggregate.
+ *
+ * Factories that create new instances (postUser, postAssistant,
+ * postFallback) attach a PendingFactoryEvent marker. The repository
+ * calls recordPendingFactoryEventAfterAssign() once the persisted id is
+ * known so the corresponding Domain Event carries the real id.
  */
 final class Message extends AggregateRoot
 {
+    private ?PendingFactoryEvent $pendingFactoryEvent = null;
+
     private function __construct(
         private ?MessageId $messageId,
         private ConversationId $conversationId,
@@ -47,7 +55,7 @@ final class Message extends AggregateRoot
 
     public static function postUser(ConversationId $conversationId, MessageBody $body): self
     {
-        return new self(
+        $message = new self(
             messageId: null,
             conversationId: $conversationId,
             role: MessageRole::User,
@@ -59,6 +67,28 @@ final class Message extends AggregateRoot
             createdAt: null,
             updatedAt: null,
         );
+        $message->pendingFactoryEvent = PendingFactoryEvent::UserPosted;
+
+        return $message;
+    }
+
+    public static function postAssistant(ConversationId $conversationId, MessageBody $body): self
+    {
+        $message = new self(
+            messageId: null,
+            conversationId: $conversationId,
+            role: MessageRole::Assistant,
+            type: MessageType::Text,
+            body: $body,
+            mediaUrl: null,
+            status: MessageStatus::Pending,
+            metadata: [],
+            createdAt: null,
+            updatedAt: null,
+        );
+        $message->pendingFactoryEvent = PendingFactoryEvent::AssistantPosted;
+
+        return $message;
     }
 
     /**
@@ -99,25 +129,41 @@ final class Message extends AggregateRoot
         $this->messageId = $id;
     }
 
-    public function recordUserPostedAfterAssign(): void
+    /**
+     * Records the matching domain event (UserMessageWasPosted /
+     * AssistantMessageWasPosted / FallbackMessageWasPosted) using the
+     * persisted message id. Idempotent — does nothing when called on an
+     * aggregate hydrated from primitives (no pending factory event).
+     */
+    public function recordPendingFactoryEventAfterAssign(): void
     {
-        if ($this->messageId === null) {
-            throw new LogicException('Cannot record UserMessageWasPosted before id assignment.');
+        if ($this->pendingFactoryEvent === null) {
+            return;
         }
 
-        if ($this->role !== MessageRole::User) {
-            throw new LogicException('UserMessageWasPosted may only be recorded for user-role messages.');
+        if ($this->messageId === null) {
+            throw new LogicException('Cannot record factory event before id assignment.');
         }
 
         if ($this->body === null) {
-            throw new LogicException('UserMessageWasPosted requires a body.');
+            throw new LogicException('Factory events require a body.');
         }
 
-        $this->record(new UserMessageWasPosted(
-            messageId: $this->messageId->value(),
-            conversationId: $this->conversationId->value(),
-            body: $this->body->value,
-        ));
+        $event = match ($this->pendingFactoryEvent) {
+            PendingFactoryEvent::UserPosted => new UserMessageWasPosted(
+                messageId: $this->messageId->value(),
+                conversationId: $this->conversationId->value(),
+                body: $this->body->value,
+            ),
+            PendingFactoryEvent::AssistantPosted => new AssistantMessageWasPosted(
+                messageId: $this->messageId->value(),
+                conversationId: $this->conversationId->value(),
+                body: $this->body->value,
+            ),
+        };
+
+        $this->record($event);
+        $this->pendingFactoryEvent = null;
     }
 
     public function isNew(): bool
