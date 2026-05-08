@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Backoffice;
 
-use App\Actions\SendMessageAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
-use App\Http\Resources\MessageResource;
-use App\Repositories\ConversationRepository;
 use App\ViewModels\Backoffice\AtomicIA\GetAtomicIAViewModel;
 use Core\BoundedContext\Conversations\Application\Actions\DeleteConversation;
+use Core\BoundedContext\Conversations\Application\Actions\PostUserMessage;
 use Core\BoundedContext\Conversations\Application\Actions\StartConversation;
 use Core\BoundedContext\Conversations\Application\DTOs\DeleteConversationData;
+use Core\BoundedContext\Conversations\Application\DTOs\PostUserMessageData;
 use Core\BoundedContext\Conversations\Domain\Exceptions\ConversationNotFound;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
@@ -37,19 +36,20 @@ class AtomicIAController extends Controller
         return response()->json($viewModel->toArray());
     }
 
-    public function store(SendMessageRequest $request, ConversationRepository $repository): JsonResponse
+    public function store(SendMessageRequest $request, PostUserMessage $postUserMessage): JsonResponse
     {
-        $conversation = $repository->getByIdAndUser(
-            (int) $request->query('conversation_id'),
-            auth()->id()
-        );
-
-        abort_if(is_null($conversation), 404);
-
-        $message = SendMessageAction::execute($conversation, $request->validated());
+        try {
+            $response = $postUserMessage(new PostUserMessageData(
+                conversationId: (int) $request->query('conversation_id'),
+                userId: (int) auth()->id(),
+                body: (string) $request->validated('body'),
+            ));
+        } catch (ConversationNotFound) {
+            abort(404);
+        }
 
         return response()->json([
-            'message' => new MessageResource($message),
+            'message' => $response->toArray(),
         ]);
     }
 

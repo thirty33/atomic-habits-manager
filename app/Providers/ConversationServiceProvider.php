@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Core\BoundedContext\Conversations\Domain\ConversationRepository;
+use Core\BoundedContext\Conversations\Domain\MessageRepository;
 use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\EloquentConversationRepository;
+use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\EloquentMessageRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -20,5 +22,6 @@ final class ConversationServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     public array $bindings = [
         ConversationRepository::class => EloquentConversationRepository::class,
+        MessageRepository::class => EloquentMessageRepository::class,
     ];
 }
