@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\Conversations\Domain;
 
+use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasApproved;
+use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasBanned;
 use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\Events\UserMessageWasPosted;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
@@ -135,6 +137,72 @@ final class Message extends AggregateRoot
      * persisted message id. Idempotent — does nothing when called on an
      * aggregate hydrated from primitives (no pending factory event).
      */
+    /**
+     * Approves a Pending assistant message — flow 06 happy path.
+     *
+     * @throws \DomainException when the message is not Pending or not assistant.
+     */
+    public function approve(?string $reason = null): void
+    {
+        if ($this->status !== MessageStatus::Pending) {
+            throw new \DomainException('Cannot approve a Message that is not Pending.');
+        }
+
+        if ($this->role !== MessageRole::Assistant) {
+            throw new \DomainException('Only assistant messages are subject to moderation.');
+        }
+
+        if ($this->messageId === null) {
+            throw new LogicException('Cannot approve a Message without id.');
+        }
+
+        $this->status = MessageStatus::Approved;
+        $this->metadata = [
+            ...$this->metadata,
+            'moderation' => ['approved' => true, 'reason' => $reason],
+        ];
+
+        $this->record(new AssistantMessageWasApproved(
+            messageId: $this->messageId->value(),
+            conversationId: $this->conversationId->value(),
+            reason: $reason,
+        ));
+    }
+
+    /**
+     * Bans a Pending assistant message — flow 06 ban path. The cascading
+     * conversation ban is handled by the BanAssistantMessage Use Case via
+     * the BanConversation Use Case (cohesion across aggregates).
+     *
+     * @throws \DomainException when the message is not Pending or not assistant.
+     */
+    public function ban(?string $reason = null): void
+    {
+        if ($this->status !== MessageStatus::Pending) {
+            throw new \DomainException('Cannot ban a Message that is not Pending.');
+        }
+
+        if ($this->role !== MessageRole::Assistant) {
+            throw new \DomainException('Only assistant messages are subject to moderation.');
+        }
+
+        if ($this->messageId === null) {
+            throw new LogicException('Cannot ban a Message without id.');
+        }
+
+        $this->status = MessageStatus::Banned;
+        $this->metadata = [
+            ...$this->metadata,
+            'moderation' => ['approved' => false, 'reason' => $reason],
+        ];
+
+        $this->record(new AssistantMessageWasBanned(
+            messageId: $this->messageId->value(),
+            conversationId: $this->conversationId->value(),
+            reason: $reason,
+        ));
+    }
+
     public function recordPendingFactoryEventAfterAssign(): void
     {
         if ($this->pendingFactoryEvent === null) {

@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
-use App\Models\Message;
-use App\Services\ModerationService;
+use Core\BoundedContext\Conversations\Application\Actions\ModerateAssistantMessage;
+use Core\BoundedContext\Conversations\Application\DTOs\ModerateAssistantMessageData;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class ModerateMessageJob implements ShouldQueue
+final class ModerateMessageJob implements ShouldQueue
 {
     use Queueable;
 
@@ -16,12 +18,15 @@ class ModerateMessageJob implements ShouldQueue
     public int $tries = 3;
 
     public function __construct(
-        public Message $message,
-        public string $prompt,
+        public int $messageId,
+        public int $conversationId,
     ) {}
 
-    public function handle(ModerationService $service): void
+    public function handle(ModerateAssistantMessage $useCase): void
     {
-        $service->moderate($this->message, $this->prompt);
+        $useCase(new ModerateAssistantMessageData(
+            messageId: $this->messageId,
+            conversationId: $this->conversationId,
+        ));
     }
 }

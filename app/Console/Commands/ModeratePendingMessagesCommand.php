@@ -1,35 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Jobs\ModerateMessageJob;
-use App\Repositories\MessageRepository;
+use Core\BoundedContext\Conversations\Domain\MessageRepository;
 use Illuminate\Console\Command;
 
-class ModeratePendingMessagesCommand extends Command
+final class ModeratePendingMessagesCommand extends Command
 {
     protected $signature = 'atomic-ia:moderate';
 
-    protected $description = 'Modera los mensajes pendientes de revisión';
+    protected $description = 'Despacha un job de moderación por cada mensaje del asistente en estado Pending.';
 
-    public function handle(MessageRepository $repository): int
+    public function handle(MessageRepository $messages): int
     {
-        $pending = $repository->getPendingAssistantMessages();
+        $pending = $messages->pendingAssistantMessages()->items();
 
+        $dispatched = 0;
         foreach ($pending as $message) {
-            $userMessage = $repository->getLastUserMessageBody($message->conversation);
+            $messageId = $message->messageId();
+            if ($messageId === null) {
+                continue;
+            }
 
-            $prompt = implode("\n\n", [
-                'Mensaje del usuario:',
-                $userMessage,
-                'Respuesta del asistente:',
-                $message->body,
-            ]);
-
-            ModerateMessageJob::dispatch($message, $prompt);
+            ModerateMessageJob::dispatch(
+                $messageId->value(),
+                $message->conversationId()->value(),
+            );
+            $dispatched++;
         }
 
-        $this->info("Despachados {$pending->count()} jobs de moderación.");
+        $this->components->info("Despachados {$dispatched} jobs de moderación.");
 
         return self::SUCCESS;
     }

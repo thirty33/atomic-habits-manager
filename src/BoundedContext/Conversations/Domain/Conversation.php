@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\Conversations\Domain;
 
+use Core\BoundedContext\Conversations\Domain\Events\ConversationWasBanned;
 use Core\BoundedContext\Conversations\Domain\Events\ConversationWasDeleted;
 use Core\BoundedContext\Conversations\Domain\Events\ConversationWasStarted;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
@@ -118,6 +119,35 @@ final class Conversation extends AggregateRoot
         $this->record(new ConversationWasDeleted(
             conversationId: $this->conversationId->value(),
             userId: $this->userId->value(),
+        ));
+    }
+
+    /**
+     * Idempotent transition Active → Banned. Already-banned conversations
+     * stay quiet (no re-emission of the event). Archived → Banned is
+     * disallowed: archived means closed by the user; banned means closed
+     * by moderation. The two states never overlap.
+     */
+    public function ban(?string $reason = null): void
+    {
+        if ($this->conversationId === null) {
+            throw new LogicException('Cannot ban a Conversation that has no id.');
+        }
+
+        if ($this->status === ConversationStatus::Banned) {
+            return;
+        }
+
+        if ($this->status === ConversationStatus::Archived) {
+            throw new \DomainException('Cannot ban an archived conversation.');
+        }
+
+        $this->status = ConversationStatus::Banned;
+
+        $this->record(new ConversationWasBanned(
+            conversationId: $this->conversationId->value(),
+            userId: $this->userId->value(),
+            reason: $reason,
         ));
     }
 

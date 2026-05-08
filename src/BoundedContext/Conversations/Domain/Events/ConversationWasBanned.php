@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Core\BoundedContext\Conversations\Domain\Events;
+
+use Core\Shared\Domain\Events\DomainEvent;
+use DateTimeImmutable;
+
+final class ConversationWasBanned extends DomainEvent
+{
+    public function __construct(
+        public readonly int $conversationId,
+        public readonly int $userId,
+        public readonly ?string $reason,
+        ?DateTimeImmutable $occurredOn = null,
+        ?string $eventId = null,
+    ) {
+        parent::__construct(
+            occurredAt: $occurredOn ?? new DateTimeImmutable,
+            eventId: $eventId ?? bin2hex(random_bytes(16)),
+        );
+    }
+
+    public static function eventName(): string
+    {
+        return 'conversations.was_banned';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toPrimitives(): array
+    {
+        return [
+            'conversation_id' => $this->conversationId,
+            'user_id' => $this->userId,
+            'reason' => $this->reason,
+        ];
+    }
+
+    /**
+     * @param  array{conversation_id: int, user_id: int, reason: ?string}  $primitives
+     */
+    public static function fromPrimitives(array $primitives): self
+    {
+        return new self(
+            conversationId: (int) $primitives['conversation_id'],
+            userId: (int) $primitives['user_id'],
+            reason: $primitives['reason'] !== null ? (string) $primitives['reason'] : null,
+        );
+    }
+}
