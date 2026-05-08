@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Backoffice;
 
-use App\Actions\Conversations\CreateConversationAction;
 use App\Actions\Conversations\DeleteConversationAction;
 use App\Actions\SendMessageAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
-use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Repositories\ConversationRepository;
 use App\ViewModels\Backoffice\AtomicIA\GetAtomicIAViewModel;
+use Core\BoundedContext\Conversations\Application\Actions\StartConversation;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
@@ -51,13 +51,13 @@ class AtomicIAController extends Controller
         ]);
     }
 
-    public function newConversation(): JsonResponse
+    public function newConversation(StartConversation $startConversation): JsonResponse
     {
-        $conversation = CreateConversationAction::execute();
+        $response = $startConversation(UserId::from((int) auth()->id()));
 
         return response()->json([
-            'conversation' => new ConversationResource($conversation),
-            'store_url' => route('backoffice.atomic-ia.store', ['conversation_id' => $conversation->conversation_id]),
+            'conversation' => $response->toArray(),
+            'store_url' => route('backoffice.atomic-ia.store', ['conversation_id' => $response->conversationId]),
         ]);
     }
 
