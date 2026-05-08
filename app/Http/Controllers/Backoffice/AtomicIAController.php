@@ -4,15 +4,16 @@ namespace App\Http\Controllers\Backoffice;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
-use App\ViewModels\Backoffice\AtomicIA\GetAtomicIAViewModel;
 use Core\BoundedContext\Conversations\Application\Actions\DeleteConversation;
 use Core\BoundedContext\Conversations\Application\Actions\PostUserMessage;
 use Core\BoundedContext\Conversations\Application\Actions\StartConversation;
 use Core\BoundedContext\Conversations\Application\DTOs\DeleteConversationData;
 use Core\BoundedContext\Conversations\Application\DTOs\PostUserMessageData;
+use Core\BoundedContext\Conversations\Application\ViewModels\GetAtomicIAViewModel;
 use Core\BoundedContext\Conversations\Domain\Exceptions\ConversationNotFound;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AtomicIAController extends Controller
@@ -31,9 +32,16 @@ class AtomicIAController extends Controller
         ]);
     }
 
-    public function json(GetAtomicIAViewModel $viewModel): JsonResponse
+    public function json(Request $request, GetAtomicIAViewModel $viewModel): JsonResponse
     {
-        return response()->json($viewModel->toArray());
+        $payload = $viewModel->build(
+            userId: UserId::from((int) auth()->id()),
+            selectedConversationId: $request->integer('conversation_id') ?: null,
+            storeUrlBuilder: fn (int $conversationId): string => route('backoffice.atomic-ia.store', ['conversation_id' => $conversationId]),
+            newConversationUrl: route('backoffice.atomic-ia.new-conversation'),
+        );
+
+        return response()->json($payload);
     }
 
     public function store(SendMessageRequest $request, PostUserMessage $postUserMessage): JsonResponse

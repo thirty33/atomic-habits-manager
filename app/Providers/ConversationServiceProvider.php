@@ -13,6 +13,7 @@ use Core\BoundedContext\Conversations\Application\EventHandlers\BroadcastApprove
 use Core\BoundedContext\Conversations\Application\EventHandlers\BroadcastConversationStatus;
 use Core\BoundedContext\Conversations\Application\EventHandlers\PostFallbackOnBan;
 use Core\BoundedContext\Conversations\Application\EventHandlers\ScheduleAiResponse;
+use Core\BoundedContext\Conversations\Domain\ConversationReader;
 use Core\BoundedContext\Conversations\Domain\ConversationRepository;
 use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasApproved;
 use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasBanned;
@@ -26,6 +27,7 @@ use Core\BoundedContext\Conversations\Domain\MessageRepository;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\LaravelAiModerationProvider;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\LaravelAiResponseProvider;
 use Core\BoundedContext\Conversations\Infrastructure\Broadcasting\LaravelEchoConversationBroadcaster;
+use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\EloquentConversationReader;
 use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\EloquentConversationRepository;
 use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\EloquentMessageRepository;
 use Core\Shared\Infrastructure\Events\Bus\DomainEventSubscriptions;
@@ -43,6 +45,7 @@ final class ConversationServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     public array $bindings = [
         ConversationRepository::class => EloquentConversationRepository::class,
+        ConversationReader::class => EloquentConversationReader::class,
         MessageRepository::class => EloquentMessageRepository::class,
         ConversationBroadcaster::class => LaravelEchoConversationBroadcaster::class,
     ];
