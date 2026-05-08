@@ -9,6 +9,7 @@ use Core\BoundedContext\Conversations\Application\Actions\BanAssistantMessage;
 use Core\BoundedContext\Conversations\Application\Ai\AiModerationProvider;
 use Core\BoundedContext\Conversations\Application\Ai\AiResponseProvider;
 use Core\BoundedContext\Conversations\Application\Broadcasting\ConversationBroadcaster;
+use Core\BoundedContext\Conversations\Application\EventHandlers\BroadcastApprovedMessage;
 use Core\BoundedContext\Conversations\Application\EventHandlers\BroadcastConversationStatus;
 use Core\BoundedContext\Conversations\Application\EventHandlers\PostFallbackOnBan;
 use Core\BoundedContext\Conversations\Application\EventHandlers\ScheduleAiResponse;
@@ -81,5 +82,7 @@ final class ConversationServiceProvider extends ServiceProvider
         $subscriptions->register(UserMessageWasPosted::class, ScheduleAiResponse::class);
         $subscriptions->register(ConversationWasBanned::class, BroadcastConversationStatus::class);
         $subscriptions->register(AssistantMessageWasBanned::class, PostFallbackOnBan::class);
+        $subscriptions->register(AssistantMessageWasApproved::class, BroadcastApprovedMessage::class);
+        $subscriptions->register(FallbackMessageWasPosted::class, BroadcastApprovedMessage::class);
     }
 }

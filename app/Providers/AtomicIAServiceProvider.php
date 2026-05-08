@@ -2,24 +2,21 @@
 
 namespace App\Providers;
 
-use App\Models\Message;
-use App\Observers\MessageObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AtomicIAServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // ModerationService is now ModerateAssistantMessage + adapter
-        // (flow 06). AtomicIAService is now ProcessUserMessageWithAi +
-        // adapter (flow 04). No legacy bindings remain here.
+        // ModerationService is now ModerateAssistantMessage + adapter (flow 06).
+        // AtomicIAService is now ProcessUserMessageWithAi + adapter (flow 04).
+        // MessageObserver is now PostFallbackOnBan + BroadcastApprovedMessage
+        // listeners (flows 07/08). This provider has no remaining duties; kept
+        // empty for shape symmetry until removed in a future cleanup.
     }
 
     public function boot(): void
     {
-        // MessageObserver is kept only for the assistant-message updated
-        // branches (Approved → broadcast, Banned → fallback). Both will
-        // be replaced by Domain Event listeners in flows 07 and 08.
-        Message::observe(MessageObserver::class);
+        //
     }
 }
