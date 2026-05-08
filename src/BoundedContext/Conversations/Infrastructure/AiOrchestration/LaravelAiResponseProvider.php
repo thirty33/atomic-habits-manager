@@ -4,28 +4,27 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\Conversations\Infrastructure\AiOrchestration;
 
-use App\Ai\Strategies\HabitBulkCreateStrategy;
-use App\Ai\Strategies\HabitBulkDeleteStrategy;
-use App\Ai\Strategies\HabitBulkUpdateStrategy;
-use App\Ai\Strategies\HabitCreateStrategy;
-use App\Ai\Strategies\HabitDeleteStrategy;
-use App\Ai\Strategies\HabitListStrategy;
-use App\Ai\Strategies\HabitUpdateStrategy;
-use App\Ai\Tools\BulkCreateResourceTool;
-use App\Ai\Tools\BulkDeleteResourceTool;
-use App\Ai\Tools\BulkUpdateResourceTool;
-use App\Ai\Tools\CreateResourceTool;
-use App\Ai\Tools\DeleteResourceTool;
-use App\Ai\Tools\GreetTool;
-use App\Ai\Tools\ListResourceTool;
-use App\Ai\Tools\RespondToUserTool;
-use App\Ai\Tools\UpdateResourceTool;
 use Core\BoundedContext\Conversations\Application\Ai\AiResponseProvider;
 use Core\BoundedContext\Conversations\Domain\Conversation;
 use Core\BoundedContext\Conversations\Domain\MessageRepository;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\MessageBody;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Agents\AtomicIAAgent;
-use Illuminate\Contracts\Auth\Factory as AuthFactory;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitBulkCreateStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitBulkDeleteStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitBulkUpdateStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitCreateStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitDeleteStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitListStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitUpdateStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\BulkCreateResourceTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\BulkDeleteResourceTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\BulkUpdateResourceTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\CreateResourceTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\DeleteResourceTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\GreetTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\ListResourceTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\RespondToUserTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\UpdateResourceTool;
 use Illuminate\Contracts\Container\Container;
 use Laravel\Ai\Responses\AgentResponse;
 
@@ -33,14 +32,8 @@ use Laravel\Ai\Responses\AgentResponse;
  * Laravel\Ai SDK adapter for the AiResponseProvider Application port.
  *
  * Builds the AtomicIAAgent + the Tool battery (resolved through the
- * container so the legacy strategies still work during the staged
- * migration), prompts the LLM, and extracts the response body.
- *
- * Concession to be cleaned up in flow 10: legacy Tools call
- * auth()->id() inside their handle() to identify the acting user. We
- * temporarily set up auth here using loginUsingId so that pathway keeps
- * working. Flow 10 refactors Tools to take int $userId by constructor;
- * once that lands, this loginUsingId call disappears.
+ * container) and prompts the LLM. Each resource Tool receives the acting
+ * userId by constructor, so handle() does not call auth() at all.
  */
 final readonly class LaravelAiResponseProvider implements AiResponseProvider
 {
@@ -48,17 +41,16 @@ final readonly class LaravelAiResponseProvider implements AiResponseProvider
         private string $provider,
         private string $model,
         private Container $container,
-        private AuthFactory $auth,
         private MessageRepository $messages,
     ) {}
 
     public function respondTo(Conversation $conversation, MessageBody $userMessage): MessageBody
     {
-        $this->auth->guard('web')->loginUsingId($conversation->userId()->value());
+        $userId = $conversation->userId()->value();
 
         $agent = new AtomicIAAgent(
             conversation: $conversation,
-            tools: $this->buildTools(),
+            tools: $this->buildTools($userId),
             messageRepository: $this->messages,
         );
 
@@ -74,17 +66,17 @@ final readonly class LaravelAiResponseProvider implements AiResponseProvider
     /**
      * @return list<\Laravel\Ai\Contracts\Tool>
      */
-    private function buildTools(): array
+    private function buildTools(int $userId): array
     {
         return [
             new GreetTool,
-            new ListResourceTool($this->container->make(HabitListStrategy::class)),
-            new CreateResourceTool($this->container->make(HabitCreateStrategy::class)),
-            new UpdateResourceTool($this->container->make(HabitUpdateStrategy::class)),
-            new DeleteResourceTool($this->container->make(HabitDeleteStrategy::class)),
-            new BulkCreateResourceTool($this->container->make(HabitBulkCreateStrategy::class)),
-            new BulkUpdateResourceTool($this->container->make(HabitBulkUpdateStrategy::class)),
-            new BulkDeleteResourceTool($this->container->make(HabitBulkDeleteStrategy::class)),
+            new ListResourceTool($userId, $this->container->make(HabitListStrategy::class)),
+            new CreateResourceTool($userId, $this->container->make(HabitCreateStrategy::class)),
+            new UpdateResourceTool($userId, $this->container->make(HabitUpdateStrategy::class)),
+            new DeleteResourceTool($userId, $this->container->make(HabitDeleteStrategy::class)),
+            new BulkCreateResourceTool($userId, $this->container->make(HabitBulkCreateStrategy::class)),
+            new BulkUpdateResourceTool($userId, $this->container->make(HabitBulkUpdateStrategy::class)),
+            new BulkDeleteResourceTool($userId, $this->container->make(HabitBulkDeleteStrategy::class)),
             new RespondToUserTool,
         ];
     }

@@ -2,8 +2,8 @@
 
 namespace App\Listeners;
 
-use App\Ai\Contracts\HasUserId;
 use App\Models\AiInvocationLog;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Contracts\HasUserId;
 use Laravel\Ai\Events\AgentPrompted;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\Data\ToolResult;

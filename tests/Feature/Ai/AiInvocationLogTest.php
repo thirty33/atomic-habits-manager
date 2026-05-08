@@ -2,14 +2,13 @@
 
 namespace Tests\Feature\Ai;
 
-use App\Ai\Agents\AtomicIAAgent;
-use App\Ai\Agents\ModeratorAgent;
 use App\Enums\ConversationStatus;
-use App\Enums\MessageRole;
-use App\Enums\MessageStatus;
 use App\Models\AiInvocationLog;
 use App\Models\Conversation;
 use App\Models\User;
+use Core\BoundedContext\Conversations\Domain\Conversation as DomainConversation;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Agents\AtomicIAAgent;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Agents\ModeratorAgent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Providers\TextProvider;
@@ -29,6 +28,8 @@ class AiInvocationLogTest extends TestCase
 
     private Conversation $conversation;
 
+    private DomainConversation $domainConversation;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -39,13 +40,24 @@ class AiInvocationLogTest extends TestCase
             'title' => 'Test',
             'status' => ConversationStatus::Active,
         ]);
+
+        $this->domainConversation = DomainConversation::fromPrimitives(
+            conversationId: $this->conversation->conversation_id,
+            userId: $this->conversation->user_id,
+            title: $this->conversation->title,
+            status: $this->conversation->status->value,
+            lastMessageAt: optional($this->conversation->last_message_at)->toDateTimeString(),
+            createdAt: optional($this->conversation->created_at)->toDateTimeString(),
+            updatedAt: optional($this->conversation->updated_at)->toDateTimeString(),
+            deletedAt: null,
+        );
     }
 
     public function test_it_logs_agent_invocation_without_tool_calls(): void
     {
         AtomicIAAgent::fake(['Hola! Soy Atomic IA.']);
 
-        $agent = new AtomicIAAgent($this->conversation);
+        $agent = new AtomicIAAgent($this->domainConversation, []);
         $agent->prompt('hola', provider: 'deepseek', model: 'deepseek-chat');
 
         $this->assertDatabaseCount('ai_invocation_logs', 1);
@@ -59,7 +71,7 @@ class AiInvocationLogTest extends TestCase
 
     public function test_it_logs_compact_tool_calls(): void
     {
-        $agent = new AtomicIAAgent($this->conversation);
+        $agent = new AtomicIAAgent($this->domainConversation, []);
 
         $invocationId = (string) Str::uuid();
         $agentResponse = new AgentResponse($invocationId, 'Listo, hábito eliminado.', new Usage(100, 50), new Meta);
@@ -89,24 +101,16 @@ class AiInvocationLogTest extends TestCase
         $this->assertSame(50, $log->completion_tokens);
     }
 
-    public function test_it_logs_moderator_agent_invocation(): void
+    public function test_it_logs_moderator_agent_invocation_with_null_user(): void
     {
         ModeratorAgent::fake(['approved']);
 
-        $message = \App\Models\Message::withoutEvents(fn () => $this->conversation->messages()->create([
-            'role' => MessageRole::User,
-            'type' => 'text',
-            'body' => 'hola',
-            'status' => MessageStatus::Sent,
-        ]));
-        $message->setRelation('conversation', $this->conversation);
-
-        $agent = new ModeratorAgent($message);
+        $agent = new ModeratorAgent([]);
         $agent->prompt('moderate this', provider: 'deepseek', model: 'deepseek-chat');
 
         $this->assertDatabaseCount('ai_invocation_logs', 1);
         $this->assertDatabaseHas('ai_invocation_logs', [
-            'user_id' => $this->user->user_id,
+            'user_id' => null,
             'agent' => 'ModeratorAgent',
         ]);
     }
@@ -115,7 +119,7 @@ class AiInvocationLogTest extends TestCase
     {
         AtomicIAAgent::fake(['']);
 
-        $agent = new AtomicIAAgent($this->conversation);
+        $agent = new AtomicIAAgent($this->domainConversation, []);
         $agent->prompt('test', provider: 'deepseek', model: 'deepseek-chat');
 
         $this->assertDatabaseHas('ai_invocation_logs', [

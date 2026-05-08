@@ -2,12 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\Habit;
-use App\Models\HabitSchedule;
-use App\Observers\HabitObserver;
-use App\Observers\HabitScheduleObserver;
-use App\Services\Occurrences\Contracts\OccurrenceServiceInterface;
-use App\Services\Occurrences\OccurrenceService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -26,8 +20,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(OccurrenceServiceInterface::class, OccurrenceService::class);
-
         $this->app->singleton(\Core\Shared\Infrastructure\Events\Outbox\OutboxEntry::class);
         $this->app->singleton(
             \Core\Shared\Infrastructure\Events\Outbox\OutboxRepository::class,
@@ -36,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\Core\Shared\Infrastructure\Events\Outbox\DomainEventSerializer::class, \Core\Shared\Infrastructure\Events\Outbox\JsonDomainEventSerializer::class);
         $this->app->singleton(\Core\Shared\Infrastructure\Events\Outbox\DomainEventClassRegistry::class);
         $this->app->singleton(\Core\Shared\Infrastructure\Events\Bus\DomainEventSubscriptions::class);
+
+        $this->app->bind(
+            \Core\Shared\Application\Logging\Logger::class,
+            \Core\Shared\Infrastructure\Logging\LaravelLogger::class,
+        );
 
         // Cargar Blueprint Macros dinamicamente
         foreach (glob(app_path('Macros/Blueprint/*.php')) as $filename) {
@@ -54,8 +51,6 @@ class AppServiceProvider extends ServiceProvider
             \URL::forceScheme('https');
         }
 
-        Habit::observe(HabitObserver::class);
-        HabitSchedule::observe(HabitScheduleObserver::class);
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });

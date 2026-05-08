@@ -1,0 +1,328 @@
+Enum "habit_schedules_recurrence_type_enum" {
+  "none"
+  "daily"
+  "weekly"
+  "every_n_days"
+}
+
+Enum "habits_habit_nature_enum" {
+  "build"
+  "break"
+}
+
+Enum "habits_desire_type_enum" {
+  "need"
+  "want"
+  "neutral"
+}
+
+Table "agent_conversation_messages" {
+  "id" varchar(36) [pk, not null]
+  "conversation_id" varchar(36) [not null]
+  "user_id" bigint [not null]
+  "agent" varchar(255) [not null]
+  "role" varchar(25) [not null]
+  "content" text [not null]
+  "attachments" text [not null]
+  "tool_calls" text [not null]
+  "tool_results" text [not null]
+  "usage" text [not null]
+  "meta" text [not null]
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    (conversation_id, user_id, updated_at) [name: "conversation_index"]
+    user_id [name: "agent_conversation_messages_user_id_index"]
+    conversation_id [name: "agent_conversation_messages_conversation_id_index"]
+  }
+}
+
+Table "agent_conversations" {
+  "id" varchar(36) [pk, not null]
+  "user_id" bigint [not null]
+  "title" varchar(255) [not null]
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    (user_id, updated_at) [name: "agent_conversations_user_id_updated_at_index"]
+  }
+}
+
+Table "ai_invocation_logs" {
+  "id" bigint [pk, not null, increment]
+  "user_id" bigint
+  "agent" varchar(100) [not null]
+  "prompt" text [not null]
+  "response" text
+  "tool_calls" text
+  "prompt_tokens" int
+  "completion_tokens" int
+  "created_at" timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    user_id [name: "ai_invocation_logs_user_id_foreign"]
+  }
+}
+
+Table "cache" {
+  "key" varchar(255) [pk, not null]
+  "value" mediumtext [not null]
+  "expiration" int [not null]
+
+  Indexes {
+    expiration [name: "cache_expiration_index"]
+  }
+}
+
+Table "cache_locks" {
+  "key" varchar(255) [pk, not null]
+  "owner" varchar(255) [not null]
+  "expiration" int [not null]
+
+  Indexes {
+    expiration [name: "cache_locks_expiration_index"]
+  }
+}
+
+Table "conversations" {
+  "conversation_id" bigint [pk, not null, increment]
+  "user_id" bigint [not null]
+  "title" varchar(255)
+  "status" varchar(255) [not null, default: 'active']
+  "last_message_at" timestamp
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    (user_id, updated_at) [name: "conversations_user_id_updated_at_index"]
+  }
+}
+
+Table "daily_report_entries" {
+  "daily_report_entry_id" bigint [pk, not null, increment]
+  "daily_report_id" bigint [not null]
+  "habit_occurrence_id" bigint
+  "habit_id" bigint
+  "custom_activity" varchar(255)
+  "start_time" time [not null]
+  "end_time" time [not null]
+  "status" varchar(255) [not null, default: 'pending']
+  "completed_at" timestamp
+  "notes" text
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    habit_occurrence_id [name: "daily_report_entries_habit_occurrence_id_foreign"]
+    habit_id [name: "daily_report_entries_habit_id_foreign"]
+    (daily_report_id, habit_occurrence_id) [name: "daily_report_entries_daily_report_id_habit_occurrence_id_index"]
+    status [name: "daily_report_entries_status_index"]
+  }
+}
+
+Table "daily_reports" {
+  "daily_report_id" bigint [pk, not null, increment]
+  "user_id" bigint [not null]
+  "report_date" date [not null]
+  "notes" text
+  "mood" varchar(255)
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    (user_id, report_date) [unique, name: "daily_reports_user_id_report_date_unique"]
+  }
+}
+
+Table "failed_jobs" {
+  "id" bigint [pk, not null, increment]
+  "uuid" varchar(255) [not null]
+  "connection" text [not null]
+  "queue" text [not null]
+  "payload" longtext [not null]
+  "exception" longtext [not null]
+  "failed_at" timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    uuid [unique, name: "failed_jobs_uuid_unique"]
+  }
+}
+
+Table "habit_occurrences" {
+  "habit_occurrence_id" bigint [pk, not null, increment]
+  "habit_id" bigint [not null]
+  "habit_schedule_id" bigint
+  "occurrence_date" date [not null]
+  "start_time" time [not null]
+  "end_time" time [not null]
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    habit_schedule_id [name: "habit_occurrences_habit_schedule_id_foreign"]
+    (habit_id, occurrence_date) [name: "habit_occurrences_habit_id_occurrence_date_index"]
+  }
+}
+
+Table "habit_schedules" {
+  "habit_schedule_id" bigint [pk, not null, increment]
+  "habit_id" bigint [not null]
+  "previous_schedule_id" bigint
+  "chain_cue" varchar(500)
+  "start_time" time [not null]
+  "end_time" time [not null]
+  "recurrence_type" habit_schedules_recurrence_type_enum [not null]
+  "days_of_week" json
+  "interval_days" smallint
+  "specific_date" date
+  "starts_from" date [not null]
+  "ends_at" date
+  "is_active" tinyint(1) [not null, default: '1']
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    habit_id [name: "habit_schedules_habit_id_foreign"]
+    previous_schedule_id [name: "habit_schedules_previous_schedule_id_foreign"]
+  }
+}
+
+Table "habits" {
+  "habit_id" bigint [pk, not null, increment]
+  "user_id" bigint [not null]
+  "name" varchar(255) [not null]
+  "description" text
+  "color" varchar(7)
+  "habit_nature" habits_habit_nature_enum [not null]
+  "desire_type" habits_desire_type_enum [not null]
+  "implementation_intention" text
+  "location" varchar(255)
+  "cue" varchar(255)
+  "reframe" text
+  "is_active" tinyint(1) [not null, default: '1']
+  "needs_occurrence_rebuild" tinyint(1) [not null, default: '1']
+  "created_at" timestamp
+  "updated_at" timestamp
+  "deleted_at" timestamp
+
+  Indexes {
+    user_id [name: "habits_user_id_foreign"]
+  }
+}
+
+Table "job_batches" {
+  "id" varchar(255) [pk, not null]
+  "name" varchar(255) [not null]
+  "total_jobs" int [not null]
+  "pending_jobs" int [not null]
+  "failed_jobs" int [not null]
+  "failed_job_ids" longtext [not null]
+  "options" mediumtext
+  "cancelled_at" int
+  "created_at" int [not null]
+  "finished_at" int
+}
+
+Table "jobs" {
+  "id" bigint [pk, not null, increment]
+  "queue" varchar(255) [not null]
+  "payload" longtext [not null]
+  "attempts" tinyint [not null]
+  "reserved_at" int
+  "available_at" int [not null]
+  "created_at" int [not null]
+
+  Indexes {
+    queue [name: "jobs_queue_index"]
+  }
+}
+
+Table "messages" {
+  "message_id" bigint [pk, not null, increment]
+  "conversation_id" bigint [not null]
+  "role" varchar(25) [not null]
+  "type" varchar(255) [not null, default: 'text']
+  "body" text
+  "media_url" varchar(255)
+  "status" varchar(255) [not null, default: 'sent']
+  "metadata" json
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    (conversation_id, created_at) [name: "messages_conversation_id_created_at_index"]
+  }
+}
+
+Table "migrations" {
+  "id" int [pk, not null, increment]
+  "migration" varchar(255) [not null]
+  "batch" int [not null]
+}
+
+Table "password_reset_tokens" {
+  "email" varchar(255) [pk, not null]
+  "token" varchar(255) [not null]
+  "created_at" timestamp
+}
+
+Table "sessions" {
+  "id" varchar(255) [pk, not null]
+  "user_id" bigint
+  "ip_address" varchar(45)
+  "user_agent" text
+  "payload" longtext [not null]
+  "last_activity" int [not null]
+
+  Indexes {
+    user_id [name: "sessions_user_id_index"]
+    last_activity [name: "sessions_last_activity_index"]
+  }
+}
+
+Table "users" {
+  "user_id" bigint [pk, not null, increment]
+  "name" varchar(255) [not null]
+  "email" varchar(255) [not null]
+  "password" varchar(255) [not null]
+  "is_admin" tinyint(1) [not null, default: '0']
+  "is_active" tinyint(1) [not null, default: '0']
+  "email_verified_at" timestamp
+  "remember_token" varchar(100)
+  "created_at" timestamp
+  "updated_at" timestamp
+  "deleted_at" timestamp
+
+  Indexes {
+    email [unique, name: "users_email_unique"]
+  }
+}
+
+Ref "ai_invocation_logs_user_id_foreign":"users"."user_id" < "ai_invocation_logs"."user_id" [delete: set null]
+
+Ref "conversations_user_id_foreign":"users"."user_id" < "conversations"."user_id" [delete: cascade]
+
+Ref "daily_report_entries_daily_report_id_foreign":"daily_reports"."daily_report_id" < "daily_report_entries"."daily_report_id" [delete: cascade]
+
+Ref "daily_report_entries_habit_id_foreign":"habits"."habit_id" < "daily_report_entries"."habit_id" [delete: set null]
+
+Ref "daily_report_entries_habit_occurrence_id_foreign":"habit_occurrences"."habit_occurrence_id" < "daily_report_entries"."habit_occurrence_id" [delete: set null]
+
+Ref "daily_reports_user_id_foreign":"users"."user_id" < "daily_reports"."user_id" [delete: cascade]
+
+Ref "habit_occurrences_habit_id_foreign":"habits"."habit_id" < "habit_occurrences"."habit_id" [delete: cascade]
+
+Ref "habit_occurrences_habit_schedule_id_foreign":"habit_schedules"."habit_schedule_id" < "habit_occurrences"."habit_schedule_id" [delete: set null]
+
+Ref "habit_schedules_habit_id_foreign":"habits"."habit_id" < "habit_schedules"."habit_id" [delete: cascade]
+
+Ref "habit_schedules_previous_schedule_id_foreign":"habit_schedules"."habit_schedule_id" < "habit_schedules"."previous_schedule_id" [delete: set null]
+
+Ref "habits_user_id_foreign":"users"."user_id" < "habits"."user_id" [delete: cascade]
+
+Ref "messages_conversation_id_foreign":"conversations"."conversation_id" < "messages"."conversation_id" [delete: cascade]
+
+Ref "sessions_user_id_foreign":"users"."user_id" < "sessions"."user_id" [delete: cascade]
+

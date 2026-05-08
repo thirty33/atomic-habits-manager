@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Agents;
 
-use App\Ai\Contracts\HasUserId;
 use Closure;
 use Core\BoundedContext\Conversations\Domain\Conversation;
 use Core\BoundedContext\Conversations\Domain\Message;
 use Core\BoundedContext\Conversations\Domain\MessageRepository;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Contracts\HasUserId;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
@@ -27,9 +27,10 @@ use Stringable;
  * pre-bound). messages() is sourced from the MessageRepository port,
  * decoupling the agent from Eloquent.
  *
- * Implements the legacy App\Ai\Contracts\HasUserId for the duration of
- * the staged refactor — flow 11 renames it to HasAuditContext and moves
- * it to Conversations/Infrastructure/AiOrchestration/Contracts/.
+ * Implements HasUserId so LogAiInvocationListener (Infrastructure event
+ * listener for the SDK's AgentPrompted event) can attribute each LLM
+ * invocation to the acting user. Will be renamed to HasAuditContext in
+ * flow 11.
  */
 final class AtomicIAAgent implements Agent, Conversational, HasMiddleware, HasTools, HasUserId
 {

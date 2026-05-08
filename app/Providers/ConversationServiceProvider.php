@@ -11,6 +11,8 @@ use Core\BoundedContext\Conversations\Application\Ai\AiResponseProvider;
 use Core\BoundedContext\Conversations\Application\Broadcasting\ConversationBroadcaster;
 use Core\BoundedContext\Conversations\Application\EventHandlers\BroadcastApprovedMessage;
 use Core\BoundedContext\Conversations\Application\EventHandlers\BroadcastConversationStatus;
+use Core\BoundedContext\Conversations\Application\EventHandlers\HandleAiResponseListener;
+use Core\BoundedContext\Conversations\Application\EventHandlers\ModerateAssistantMessageOnPost;
 use Core\BoundedContext\Conversations\Application\EventHandlers\PostFallbackOnBan;
 use Core\BoundedContext\Conversations\Application\EventHandlers\ScheduleAiResponse;
 use Core\BoundedContext\Conversations\Domain\ConversationReader;
@@ -32,7 +34,6 @@ use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\Eloque
 use Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent\EloquentMessageRepository;
 use Core\Shared\Infrastructure\Events\Bus\DomainEventSubscriptions;
 use Core\Shared\Infrastructure\Events\Outbox\DomainEventClassRegistry;
-use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -57,7 +58,6 @@ final class ConversationServiceProvider extends ServiceProvider
                 provider: (string) config('ai.default'),
                 model: (string) config('ai.model'),
                 container: $app,
-                auth: $app->make(AuthFactory::class),
                 messages: $app->make(MessageRepository::class),
             );
         });
@@ -82,10 +82,28 @@ final class ConversationServiceProvider extends ServiceProvider
         $registry->register(FallbackMessageWasPosted::eventName(), FallbackMessageWasPosted::class);
 
         $subscriptions = $this->app->make(DomainEventSubscriptions::class);
-        $subscriptions->register(UserMessageWasPosted::class, ScheduleAiResponse::class);
+
+        // ── Pipeline collapse (estudio-unificacion-pipeline-ia.md) ───────
+        // Suscripción nueva: un único listener async que invoca el
+        // `HandleAiResponseAction` (basado en `Illuminate\Pipeline`) con
+        // los 7 pipes en serie. Reduce los 3 hops por outbox del flujo
+        // anterior a 1, sin cambiar funcionalidad.
+        $subscriptions->register(UserMessageWasPosted::class, HandleAiResponseListener::class);
+
+        // ── Suscripciones legacy (deshabilitadas durante validación) ─────
+        // Mantenemos los archivos de los listeners en disco para rollback
+        // rápido si la regresión browser detecta algún problema con el
+        // pipeline. Cuando esté validado, estas líneas se borran y los
+        // archivos se renombran a `.php.delete`.
+        // $subscriptions->register(UserMessageWasPosted::class, ScheduleAiResponse::class);
+        // $subscriptions->register(AssistantMessageWasPosted::class, ModerateAssistantMessageOnPost::class);
+        // $subscriptions->register(AssistantMessageWasBanned::class, PostFallbackOnBan::class);
+        // $subscriptions->register(AssistantMessageWasApproved::class, BroadcastApprovedMessage::class);
+        // $subscriptions->register(FallbackMessageWasPosted::class, BroadcastApprovedMessage::class);
+
+        // BroadcastConversationStatus se mantiene — es independiente del
+        // path de respuesta de la IA y solo broadcastea cambios de status
+        // de la conversación (banned por moderación o eliminada).
         $subscriptions->register(ConversationWasBanned::class, BroadcastConversationStatus::class);
-        $subscriptions->register(AssistantMessageWasBanned::class, PostFallbackOnBan::class);
-        $subscriptions->register(AssistantMessageWasApproved::class, BroadcastApprovedMessage::class);
-        $subscriptions->register(FallbackMessageWasPosted::class, BroadcastApprovedMessage::class);
     }
 }

@@ -2,16 +2,16 @@
 
 namespace Tests\Feature\Ai;
 
-use App\Ai\Strategies\HabitCreateStrategy;
-use App\Ai\Strategies\HabitDeleteStrategy;
-use App\Ai\Strategies\HabitUpdateStrategy;
-use App\Ai\Tools\CreateResourceTool;
-use App\Ai\Tools\DeleteResourceTool;
-use App\Ai\Tools\UpdateResourceTool;
 use App\Models\Habit;
 use App\Models\HabitSchedule;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitCreateStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitDeleteStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitUpdateStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\CreateResourceTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\DeleteResourceTool;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\UpdateResourceTool;
+use Core\BoundedContext\Habits\Domain\Exceptions\HabitNotFound;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Ai\Tools\Request;
 use Tests\TestCase;
@@ -38,9 +38,7 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_habit_with_minimum_required_fields(): void
     {
-        $this->actingAs($this->user);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $result = $strategy->create($this->user->user_id, [
             'name' => 'Leer',
             'habit_nature' => 'build',
@@ -59,9 +57,7 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_habit_with_all_optional_fields(): void
     {
-        $this->actingAs($this->user);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $strategy->create($this->user->user_id, [
             'name' => 'Meditar',
             'habit_nature' => 'build',
@@ -87,9 +83,7 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_habit_with_daily_schedule(): void
     {
-        $this->actingAs($this->user);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $result = $strategy->create($this->user->user_id, [
             'name' => 'Correr',
             'habit_nature' => 'build',
@@ -111,9 +105,7 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_habit_with_weekly_schedule_stores_days_as_array(): void
     {
-        $this->actingAs($this->user);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $strategy->create($this->user->user_id, [
             'name' => 'Yoga',
             'habit_nature' => 'build',
@@ -121,7 +113,7 @@ class HabitWriteStrategiesTest extends TestCase
             'schedule_recurrence_type' => 'weekly',
             'schedule_start_time' => '07:00',
             'schedule_end_time' => '07:30',
-            'schedule_days_of_week' => 'monday,wednesday,friday',
+            'schedule_days_of_week' => '1,3,5',
         ]);
 
         $habit = Habit::where('name', 'Yoga')->first();
@@ -129,14 +121,12 @@ class HabitWriteStrategiesTest extends TestCase
 
         $this->assertNotNull($schedule);
         $this->assertEquals('weekly', $schedule->recurrence_type);
-        $this->assertEqualsCanonicalizing(['monday', 'wednesday', 'friday'], $schedule->days_of_week);
+        $this->assertEqualsCanonicalizing([1, 3, 5], $schedule->days_of_week);
     }
 
     public function test_create_habit_with_every_n_days_schedule(): void
     {
-        $this->actingAs($this->user);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $strategy->create($this->user->user_id, [
             'name' => 'Ayuno',
             'habit_nature' => 'build',
@@ -156,9 +146,7 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_habit_with_none_schedule_stores_specific_date(): void
     {
-        $this->actingAs($this->user);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $strategy->create($this->user->user_id, [
             'name' => 'Evento especial',
             'habit_nature' => 'build',
@@ -178,11 +166,9 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_throws_on_invalid_habit_nature(): void
     {
-        $this->actingAs($this->user);
+        $this->expectException(\InvalidArgumentException::class);
 
-        $this->expectException(\ValueError::class);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $strategy->create($this->user->user_id, [
             'name' => 'Test',
             'habit_nature' => 'invalid_nature',
@@ -192,11 +178,9 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_throws_on_invalid_schedule_recurrence_type(): void
     {
-        $this->actingAs($this->user);
+        $this->expectException(\InvalidArgumentException::class);
 
-        $this->expectException(\ValueError::class);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $strategy->create($this->user->user_id, [
             'name' => 'Test',
             'habit_nature' => 'build',
@@ -207,9 +191,7 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_without_schedule_fields_creates_no_schedule(): void
     {
-        $this->actingAs($this->user);
-
-        $strategy = new HabitCreateStrategy;
+        $strategy = app(HabitCreateStrategy::class);
         $strategy->create($this->user->user_id, [
             'name' => 'Sin horario',
             'habit_nature' => 'break',
@@ -225,11 +207,9 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_update_only_name_leaves_other_fields_intact(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit(['name' => 'Original', 'description' => 'Descripción original']);
 
-        $strategy = new HabitUpdateStrategy;
+        $strategy = app(HabitUpdateStrategy::class);
         $result = $strategy->update($this->user->user_id, $habit->habit_id, [
             'name' => 'Nuevo nombre',
         ]);
@@ -242,11 +222,9 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_update_is_active_false_persists_correctly(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit(['is_active' => true]);
 
-        $strategy = new HabitUpdateStrategy;
+        $strategy = app(HabitUpdateStrategy::class);
         $strategy->update($this->user->user_id, $habit->habit_id, [
             'is_active' => false,
         ]);
@@ -257,12 +235,10 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_update_habit_nature_also_updates_color(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit(['habit_nature' => 'build']);
         $originalColor = $habit->color;
 
-        $strategy = new HabitUpdateStrategy;
+        $strategy = app(HabitUpdateStrategy::class);
         $strategy->update($this->user->user_id, $habit->habit_id, [
             'habit_nature' => 'break',
         ]);
@@ -274,13 +250,11 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_update_creates_new_schedule_when_no_schedule_id_provided(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit();
 
         $this->assertDatabaseCount('habit_schedules', 0);
 
-        $strategy = new HabitUpdateStrategy;
+        $strategy = app(HabitUpdateStrategy::class);
         $result = $strategy->update($this->user->user_id, $habit->habit_id, [
             'schedule_recurrence_type' => 'daily',
             'schedule_start_time' => '08:00',
@@ -297,18 +271,16 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_update_existing_schedule_with_schedule_id(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit();
         $schedule = $this->createSchedule($habit->habit_id, ['recurrence_type' => 'daily']);
 
-        $strategy = new HabitUpdateStrategy;
+        $strategy = app(HabitUpdateStrategy::class);
         $result = $strategy->update($this->user->user_id, $habit->habit_id, [
             'schedule_id' => $schedule->habit_schedule_id,
             'schedule_recurrence_type' => 'weekly',
             'schedule_start_time' => '09:00',
             'schedule_end_time' => '09:30',
-            'schedule_days_of_week' => 'monday,friday',
+            'schedule_days_of_week' => '1,5',
         ]);
 
         $this->assertStringContainsString((string) $schedule->habit_schedule_id, $result);
@@ -318,13 +290,11 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_update_rejects_schedule_belonging_to_different_habit(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit();
         $otherHabit = $this->createHabit(['name' => 'Otro']);
         $scheduleOfOther = $this->createSchedule($otherHabit->habit_id);
 
-        $strategy = new HabitUpdateStrategy;
+        $strategy = app(HabitUpdateStrategy::class);
         $result = $strategy->update($this->user->user_id, $habit->habit_id, [
             'schedule_id' => $scheduleOfOther->habit_schedule_id,
             'schedule_recurrence_type' => 'daily',
@@ -337,23 +307,19 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_update_throws_when_habit_belongs_to_another_user(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit(['user_id' => $this->otherUser->user_id]);
 
-        $this->expectException(ModelNotFoundException::class);
+        $this->expectException(HabitNotFound::class);
 
-        $strategy = new HabitUpdateStrategy;
+        $strategy = app(HabitUpdateStrategy::class);
         $strategy->update($this->user->user_id, $habit->habit_id, ['name' => 'Hack']);
     }
 
     public function test_update_returns_message_when_no_fields_provided(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit();
 
-        $strategy = new HabitUpdateStrategy;
+        $strategy = app(HabitUpdateStrategy::class);
         $result = $strategy->update($this->user->user_id, $habit->habit_id, []);
 
         $this->assertStringContainsString('No se proporcionaron campos', $result);
@@ -365,11 +331,9 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_delete_habit_soft_deletes_it(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit(['name' => 'A eliminar']);
 
-        $strategy = new HabitDeleteStrategy;
+        $strategy = app(HabitDeleteStrategy::class);
         $result = $strategy->delete($this->user->user_id, $habit->habit_id);
 
         $this->assertStringContainsString('A eliminar', $result);
@@ -378,12 +342,10 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_delete_specific_schedule_leaves_habit_intact(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit();
         $schedule = $this->createSchedule($habit->habit_id);
 
-        $strategy = new HabitDeleteStrategy;
+        $strategy = app(HabitDeleteStrategy::class);
         $result = $strategy->delete($this->user->user_id, $habit->habit_id, [
             'schedule_id' => $schedule->habit_schedule_id,
         ]);
@@ -395,13 +357,11 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_delete_rejects_schedule_belonging_to_different_habit(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit();
         $otherHabit = $this->createHabit(['name' => 'Otro']);
         $scheduleOfOther = $this->createSchedule($otherHabit->habit_id);
 
-        $strategy = new HabitDeleteStrategy;
+        $strategy = app(HabitDeleteStrategy::class);
         $result = $strategy->delete($this->user->user_id, $habit->habit_id, [
             'schedule_id' => $scheduleOfOther->habit_schedule_id,
         ]);
@@ -412,26 +372,22 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_delete_habit_throws_when_belongs_to_another_user(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit(['user_id' => $this->otherUser->user_id]);
 
-        $this->expectException(ModelNotFoundException::class);
+        $this->expectException(HabitNotFound::class);
 
-        $strategy = new HabitDeleteStrategy;
+        $strategy = app(HabitDeleteStrategy::class);
         $strategy->delete($this->user->user_id, $habit->habit_id);
     }
 
     public function test_delete_schedule_throws_when_habit_belongs_to_another_user(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit(['user_id' => $this->otherUser->user_id]);
         $schedule = $this->createSchedule($habit->habit_id);
 
-        $this->expectException(ModelNotFoundException::class);
+        $this->expectException(HabitNotFound::class);
 
-        $strategy = new HabitDeleteStrategy;
+        $strategy = app(HabitDeleteStrategy::class);
         $strategy->delete($this->user->user_id, $habit->habit_id, [
             'schedule_id' => $schedule->habit_schedule_id,
         ]);
@@ -444,9 +400,7 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_tool_handle_creates_habit_and_ignores_unknown_fields(): void
     {
-        $this->actingAs($this->user);
-
-        $tool = new CreateResourceTool(new HabitCreateStrategy);
+        $tool = new CreateResourceTool($this->user->user_id, app(HabitCreateStrategy::class));
 
         $request = new Request([
             'resource' => 'habits',
@@ -467,9 +421,7 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_create_tool_handle_creates_habit_with_schedule_in_one_request(): void
     {
-        $this->actingAs($this->user);
-
-        $tool = new CreateResourceTool(new HabitCreateStrategy);
+        $tool = new CreateResourceTool($this->user->user_id, app(HabitCreateStrategy::class));
 
         $request = new Request([
             'resource' => 'habits',
@@ -492,11 +444,9 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_update_tool_handle_casts_id_to_integer_and_updates_habit(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit(['name' => 'Antes']);
 
-        $tool = new UpdateResourceTool(new HabitUpdateStrategy);
+        $tool = new UpdateResourceTool($this->user->user_id, app(HabitUpdateStrategy::class));
 
         $request = new Request([
             'resource' => 'habits',
@@ -512,11 +462,9 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_delete_tool_handle_without_schedule_id_deletes_full_habit(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit();
 
-        $tool = new DeleteResourceTool(new HabitDeleteStrategy);
+        $tool = new DeleteResourceTool($this->user->user_id, app(HabitDeleteStrategy::class));
 
         $request = new Request([
             'resource' => 'habits',
@@ -531,12 +479,10 @@ class HabitWriteStrategiesTest extends TestCase
 
     public function test_delete_tool_handle_with_schedule_id_deletes_only_schedule(): void
     {
-        $this->actingAs($this->user);
-
         $habit = $this->createHabit();
         $schedule = $this->createSchedule($habit->habit_id);
 
-        $tool = new DeleteResourceTool(new HabitDeleteStrategy);
+        $tool = new DeleteResourceTool($this->user->user_id, app(HabitDeleteStrategy::class));
 
         $request = new Request([
             'resource' => 'habits',

@@ -40,17 +40,18 @@ SQLSTATE[42S22]: Column not found: 1054 Unknown column 'deleted_at' in 'where cl
 
 ---
 
-## [3] Concesión temporal en `LaravelAiResponseProvider`: `loginUsingId` para Tools legacy
+## [3] ~~Concesión temporal en `LaravelAiResponseProvider`: `loginUsingId` para Tools legacy~~ — **CERRADA EN FLOW 10**
 
-**Síntoma observado:** las Tools del SDK (`app/Ai/Tools/{List,Create,Update,...}ResourceTool.php`) leen `auth()->id()` dentro de `handle()` — patrón legacy que el flow 10 va a refactorizar para que reciban `int $userId` por constructor. Mientras tanto el adapter `LaravelAiResponseProvider` necesita garantizar que `auth()->id()` devuelva el id del owner cuando la Tool se invoque, porque el path nuevo (listener → bucket Job → Use Case → adapter) NO pasa por una request HTTP que tenga sesión activa.
+**Síntoma observado:** las Tools del SDK (`app/Ai/Tools/{List,Create,Update,...}ResourceTool.php`) leían `auth()->id()` dentro de `handle()`. El adapter `LaravelAiResponseProvider` cubría esto con `loginUsingId` durante el intervalo flow 04 → flow 10.
 
-**Causa raíz:** staging — fase 1 (BUG-2 closure, doc 99) y fase 2 (flujos individuales) se ejecutan en pasos separados. El doc 04 §"Cambios concretos" pone la refactor de Tools en flujo 10, no en 04. Se mantiene la dependencia legacy a `auth()->id()` durante el intervalo entre flow 04 y flow 10.
+**Estado:** **resuelta.** Flow 10 (commit "DDD refactor flow 10: Tools with userId by constructor — closes BUG-2"):
 
-**Fix aplicado:** dentro de `LaravelAiResponseProvider::respondTo`, antes de construir el `AtomicIAAgent`, se ejecuta `$this->auth->guard('web')->loginUsingId($conversation->userId()->value())`. Es el equivalente al `auth()->loginUsingId(...)` que hacía el `ProcessConversationJob` legacy. Documentado en el docblock de la clase como "Concession to be cleaned up in flow 10".
+- 9 Tools migradas a `Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\*`. Las 7 Tools de recurso reciben `int $userId` por constructor; cero `auth()->id()` en sus `handle()`.
+- `LaravelAiResponseProvider::buildTools($userId)` cablea `$conversation->userId()->value()` a cada Tool. La dependencia `Illuminate\Contracts\Auth\Factory` y la llamada `loginUsingId` desaparecieron del adapter.
+- `ConversationServiceProvider` ya no inyecta `AuthFactory` al provider.
+- `app/Ai/{Tools,Strategies}/*.php` renombrados a `.php.delete`. `app/Ai/` queda con sólo Agents legacy en `.php.delete` y la carpeta vacía de Strategies/Tools.
 
-**¿Respeta DDD?** Parcialmente. El adapter está en Infrastructure, donde sí está permitido tocar `Illuminate\Contracts\Auth\Factory`. Pero la dirección que da el usuario en el prompt — "Tools del SDK reciben int $userId por constructor; cero auth()->id() y cero auth()->loginUsingId()" — exige eliminarlo. La regla se cumple cuando aterrice flow 10. **Marca esta entrada como deuda técnica con plazo definido.**
-
-**Pendiente:** flow 10 debe (1) refactorizar las 8 Tools para tomar `int $userId` por constructor, (2) eliminar `auth()->id()` de sus `handle()`, (3) eliminar el `loginUsingId` del adapter, (4) eliminar la dependencia `AuthFactory` del constructor del adapter.
+**¿Respeta DDD?** Sí, ahora plenamente. Application/Domain de Conversations no toca Auth. Infrastructure (`LaravelAiResponseProvider`) sólo lee `$conversation->userId()->value()` del agregado y lo propaga.
 
 ---
 
@@ -81,3 +82,83 @@ SQLSTATE[42S22]: Column not found: 1054 Unknown column 'deleted_at' in 'where cl
 **¿Respeta DDD?** Sí. El provider está en Infrastructure (`app/Providers/`), no toca dominio. Las suscripciones declarativas están donde corresponde. Lo que falló fue el proceso de aplicación del cambio, no la arquitectura.
 
 **Pendiente:** lección — verificar `git diff <archivo>` ANTES de cada commit para confirmar que el delta esperado coincide con el delta real. Pint puede deshacer cambios si interactúa mal con ediciones in-flight.
+
+---
+
+## [6] Eventos de dominio de `Habits` instanciados con argumento nombrado obsoleto `occurredOn:`
+
+**Síntoma observado:** al ejercitar `HabitWriteStrategiesTest` post-flow 10, todos los tests que ejecutan `CreateHabit` / `UpdateHabit` Use Cases lanzan `Error: Unknown named parameter $occurredOn` desde `HabitWasCreated::__construct` (y los demás eventos hermanos). El test no llegaba ni a tocar la lógica de la Strategy.
+
+**Causa raíz:** el constructor base `Core\Shared\Domain\Events\DomainEvent` declara su parámetro temporal como `protected DateTimeImmutable $occurredAt`. Los 4 eventos del BC `Habits` (`HabitWasCreated`, `HabitWasUpdated`, `HabitWasSoftDeleted`, `HabitWasRestored`) declaraban un parámetro local `?DateTimeImmutable $occurredOn = null` y reenviaban con `parent::__construct(occurredOn: ...)`, llamando a un argumento que el padre no expone — `Unknown named parameter`.
+
+**Fix aplicado:** unificar el nombre en los 4 eventos del BC: parámetro local renombrado a `$occurredAt`, y `parent::__construct(occurredAt: ..., eventId: ...)` ya empareja con la firma del padre. Sustitución mecánica con `sed` sobre `src/BoundedContext/Habits/Domain/Events/*.php`.
+
+**¿Respeta DDD?** Sí. Los eventos son Domain; el bug era discrepancia interna de naming, no de arquitectura. La fachada pública (`occurredOn(): DateTimeImmutable` en el padre) se preserva — sólo el parámetro del constructor cambia.
+
+**Pendiente:** ninguno. Los eventos `HabitSchedules\Domain\Events\*` y `Conversations\Domain\Events\*` ya usaban `occurredAt` desde el inicio.
+
+---
+
+## [7] `RebuildOccurrencesForHabit` / `ExtendOccurrencesForHabit` importaban `HabitScheduleId` del namespace incorrecto
+
+**Síntoma observado:** `Class "Core\BoundedContext\HabitSchedules\Domain\ValueObjects\HabitScheduleId" not found` al regenerar ocurrencias durante los tests del flow 10.
+
+**Causa raíz:** el VO real vive en `…\HabitSchedules\Domain\ValueObjects\Concretes\HabitScheduleId` (la convención del proyecto separa `Concretes/` de `Primitives/`). Los dos Use Cases de `HabitOccurrences/Application/Actions/` lo importaban sin el segmento `Concretes\\`.
+
+**Fix aplicado:** corregir el `use` en `RebuildOccurrencesForHabit.php` y `ExtendOccurrencesForHabit.php`. Cero cambios funcionales.
+
+**¿Respeta DDD?** Sí. Lo único movido es un import alineándose a la convención del repositorio.
+
+**Pendiente:** ninguno.
+
+---
+
+## [8] Observers Eloquent legacy (`HabitObserver`, `HabitScheduleObserver`) referenciaban Jobs ya retirados
+
+**Síntoma observado:** cualquier test que crea/actualiza un `Habit` o `HabitSchedule` falla con `Class "App\Jobs\SyncHabitOccurrencesJob" not found` al disparar el observer.
+
+**Causa raíz:** los observers Eloquent eran el cableado legacy entre cambios en los modelos y la regeneración de occurrences. El nuevo cableado pasa por Domain Events emitidos desde los agregados (`HabitWasUpdated`, `HabitScheduleWasCreated/Updated/Deleted`) y listeners en `HabitOccurrences/Application/EventHandlers/Rebuild*`. Los observers se quedaron en disco apuntando a `App\Jobs\SyncHabitOccurrencesJob` y `App\Jobs\CleanupDeletedHabitOccurrencesJob`, ambos ya como `.php.delete`.
+
+**Fix aplicado:**
+
+- `HabitObserver.php`, `HabitScheduleObserver.php` → renombrados a `.php.delete`.
+- `Habit::observe(...)` y `HabitSchedule::observe(...)` retirados de `AppServiceProvider::boot`.
+- `App\Services\Occurrences\OccurrenceService` (que también importaba Actions legacy) renombrado a `.php.delete` junto con su `OccurrenceServiceInterface`. El binding en `AppServiceProvider::register` se eliminó. Cero consumidores en `src/` ni en `app/Ai/`.
+- 3 tests legacy retirados a `.php.delete` con autorización del usuario:
+  - `tests/Feature/Backoffice/HabitObserverTest.php` (probaba los observers retirados)
+  - `tests/Feature/Backoffice/SyncHabitOccurrencesJobTest.php` (probaba job ya retirado)
+  - `tests/Feature/Backoffice/OccurrenceServiceTest.php` (probaba service y Actions ya retirados)
+
+  La cobertura del flujo de regeneración vive ahora en `tests/.../HabitOccurrences/EventHandlers/*` y los listeners cableados en `HabitServiceProvider`.
+
+**¿Respeta DDD?** Sí. La retirada de los observers consolida la regla "Eloquent es Infraestructura; el cableado de comportamiento vive en Domain Events emitidos por agregados". El BC `HabitOccurrences` se mantiene desacoplado del `App\Models\HabitSchedule` excepto por el adapter Eloquent del repositorio.
+
+**Pendiente:** ninguno para BUG-2. Anotado para fase 2: borrar definitivamente los `.php.delete` después de un sprint sin regresiones (mismo criterio que el `app/Repositories/HabitRepository.php` del doc 99).
+
+---
+
+## [9] Strategies usaban `value` (acceso a propiedad) en lugar de `value()` (método del VO)
+
+**Síntoma observado:** `Cannot access protected property Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitNature::$value` al ejecutar `HabitUpdateStrategy::update`.
+
+**Causa raíz:** en el BC `Habits`, los VOs `HabitNature` y `DesireType` extienden `StringEnum`, que declara `protected string $value` y expone `public function value(): string`. La Strategy nueva (migrada de `app/Ai/Strategies/HabitUpdateStrategy.php` legacy) llamaba `$habit->habitNature()->value` — sintaxis válida sólo para backed enums nativos de PHP, no para VOs.
+
+**Fix aplicado:** sustituir `$habit->habitNature()->value` → `$habit->habitNature()->value()` y lo mismo para `desireType()`. Sólo dos líneas en `HabitUpdateStrategy.php`.
+
+**¿Respeta DDD?** Sí — el VO sigue encapsulando su valor; el cliente respeta la API pública.
+
+**Pendiente:** ninguno.
+
+---
+
+## Pre-existentes fuera del alcance de BUG-2 (deuda técnica conocida)
+
+Detectados al correr la suite completa post-flow 10. **No se corrigen aquí** porque tocan dominios ajenos al cierre de BUG-2; se documentan para limpieza posterior.
+
+| Test | Síntoma | Causa | Pista para fix |
+|---|---|---|---|
+| `tests/Feature/Backoffice/GenerateHabitOccurrencesCommandTest` | `Column 'habit_occurrences.deleted_at' not found` | `EloquentHabitRepository::pendingExtensionIds` (`src/BoundedContext/Habits/Infrastructure/Persistence/Eloquent/EloquentHabitRepository.php:142,146`) hace `whereNull('habit_occurrences.deleted_at')` pero la tabla `habit_occurrences` no tiene esa columna ni el modelo usa `SoftDeletes` | borrar los `whereNull('…deleted_at')` del query — la lógica nunca filtró soft-deletes en esta tabla |
+| `tests/Feature/Backoffice/CalendarOccurrencesTest > occurrences ordered by …` | falla relacionada al mismo path de regeneración | derivado del bug anterior | mismo fix |
+| `tests/Feature/Auth/EmailVerificationTest` | `UrlGenerationException` | rutas de email verification probablemente incompletas en el setup nuevo | revisar `routes/auth.php` / Breeze |
+| `tests/Feature/Auth/AuthenticationTest > users can logout` | response inesperada en logout | misma área | idem |
+| `tests/Feature/ProfileTest > user can delete their account` / `email verification status …` | `$user->fresh()` no es null tras delete | el modelo `User` usa `SoftDeletes`; el test asume hard delete. Probablemente discrepancia entre Breeze por defecto (hard delete) y la decisión de usar soft delete en `User` | actualizar el test a `assertSoftDeleted(...)` (o quitar SoftDeletes del modelo si nunca se va a usar) |
