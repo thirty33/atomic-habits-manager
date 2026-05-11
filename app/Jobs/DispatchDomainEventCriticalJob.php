@@ -15,7 +15,9 @@ use Throwable;
 
 /**
  * Critical bucket: effects that must NOT be lost (legal notifications,
- * payments, immutable audit). Aggressive retries on a dedicated queue.
+ * payments, immutable audit). Aggressive retries on the shared SQS
+ * queue — only the tries / timeout / backoff differ from the other
+ * buckets.
  */
 final class DispatchDomainEventCriticalJob implements ShouldQueue
 {
@@ -28,10 +30,7 @@ final class DispatchDomainEventCriticalJob implements ShouldQueue
 
     public int $backoff = 30;
 
-    public function __construct(public int $outboxEntryId)
-    {
-        $this->onQueue('high');
-    }
+    public function __construct(public int $outboxEntryId) {}
 
     public function policy(): string
     {

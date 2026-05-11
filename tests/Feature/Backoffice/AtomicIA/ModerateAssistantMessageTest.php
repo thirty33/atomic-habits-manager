@@ -150,18 +150,36 @@ final class ModerateAssistantMessageTest extends TestCase
         ));
     }
 
-    public function test_command_dispatches_moderate_job_per_pending_assistant_message(): void
+    public function test_command_moderates_pending_assistant_messages_synchronously(): void
     {
+        // Safety-net cron design changed: the legacy `atomic-ia:moderate`
+        // command dispatched one `ModerateMessageJob` per pending message
+        // and relied on the queue worker to run moderation async. The new
+        // command (see `ModeratePendingMessagesCommand`) runs moderation
+        // sync against `ModerateAssistantMessage` — because if the async
+        // path is broken (the very reason the safety-net exists), pushing
+        // another async job would inherit the same risk.
+        //
+        // The conceptual intent of this test remains: "the cron picks up
+        // every pending assistant message and runs moderation on each".
+        // We verify it by setting the moderator double to 'approve' and
+        // asserting both messages end up Approved after the command runs.
         [$conversationIdA, $msgIdA] = $this->seedAssistantPending();
         [$conversationIdB, $msgIdB] = $this->seedAssistantPending();
 
-        Queue::fake();
+        $this->aiModerator->decision = 'approve';
 
         $this->artisan('atomic-ia:moderate')->assertSuccessful();
 
-        Queue::assertPushed(ModerateMessageJob::class, fn ($job) => $job->messageId === $msgIdA && $job->conversationId === $conversationIdA);
-        Queue::assertPushed(ModerateMessageJob::class, fn ($job) => $job->messageId === $msgIdB && $job->conversationId === $conversationIdB);
-        Queue::assertPushed(ModerateMessageJob::class, 2);
+        $this->assertCount(2, $this->aiModerator->calls);
+        $this->assertDatabaseHas('messages', [
+            'message_id' => $msgIdA,
+            'status' => MessageStatus::Approved->value,
+        ]);
+        $this->assertDatabaseHas('messages', [
+            'message_id' => $msgIdB,
+            'status' => MessageStatus::Approved->value,
+        ]);
     }
 
     public function test_moderate_message_job_invokes_use_case(): void

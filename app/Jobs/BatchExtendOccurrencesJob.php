@@ -2,7 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Services\Occurrences\Contracts\OccurrenceServiceInterface;
+use Core\BoundedContext\HabitOccurrences\Application\Actions\ExtendOccurrencesForHabit;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -19,10 +20,10 @@ class BatchExtendOccurrencesJob implements ShouldQueue
      */
     public function __construct(public array $habitIds) {}
 
-    public function handle(OccurrenceServiceInterface $service): void
+    public function handle(ExtendOccurrencesForHabit $extend): void
     {
-        foreach ($this->habitIds as $habitId) {
-            $service->extendForHabit($habitId);
+        foreach ($this->habitIds as $id) {
+            $extend(HabitId::from($id));
         }
     }
 }

@@ -15,7 +15,8 @@ use Throwable;
 
 /**
  * Default bucket: fast, retry-friendly listeners. Broadcasts, lightweight
- * regen, audit logs.
+ * regen, audit logs. Buckets share the queue (env SQS_QUEUE) and only
+ * differ in tries / timeout / backoff per Job class.
  */
 final class DispatchDomainEventDefaultJob implements ShouldQueue
 {
@@ -28,10 +29,7 @@ final class DispatchDomainEventDefaultJob implements ShouldQueue
 
     public int $backoff = 60;
 
-    public function __construct(public int $outboxEntryId)
-    {
-        $this->onQueue('default');
-    }
+    public function __construct(public int $outboxEntryId) {}
 
     public function policy(): string
     {

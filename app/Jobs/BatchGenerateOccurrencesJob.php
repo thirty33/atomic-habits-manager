@@ -2,7 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Services\Occurrences\Contracts\OccurrenceServiceInterface;
+use Core\BoundedContext\HabitOccurrences\Application\Actions\RebuildOccurrencesForHabit;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -19,10 +20,10 @@ class BatchGenerateOccurrencesJob implements ShouldQueue
      */
     public function __construct(public array $habitIds) {}
 
-    public function handle(OccurrenceServiceInterface $service): void
+    public function handle(RebuildOccurrencesForHabit $rebuild): void
     {
-        foreach ($this->habitIds as $habitId) {
-            $service->rebuildForHabit($habitId);
+        foreach ($this->habitIds as $id) {
+            $rebuild(HabitId::from($id));
         }
     }
 }

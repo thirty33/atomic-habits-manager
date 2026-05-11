@@ -1,62 +1,95 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
-use App\Models\Habit;
 use App\Services\Frontend\FormActionGenerator;
 use App\Services\Frontend\UIElements\ActionForm;
+use Carbon\Carbon;
+use Core\BoundedContext\Habits\Application\Responses\HabitResponse;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\DesireType;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitNature;
+use Core\BoundedContext\HabitSchedules\Application\ReadModels\HabitScheduleSnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin Habit
+ * Transform View (PoEAA cap 14, p.276) — segunda etapa del Two-Step View
+ * (cap 14, p.279). Toma el HabitResponse (DTO de la primera etapa,
+ * producido por el Use Case + assembler) y lo transforma a la
+ * representacion JSON que el frontend del backoffice consume.
+ *
+ * Decisiones de presentacion que viven aqui:
+ *   - Etiquetas i18n derivadas de los VOs.
+ *   - Formato de fecha localizado.
+ *   - URLs de acciones del controller.
+ *   - ActionForm objects para el frontend.
+ *
+ * `$activeSchedule` se inyecta pre-cargado por el caller (ver
+ * GetHabitsViewModelDdd::renderHabits) para evitar N+1. Es un snapshot —
+ * read DTO del BC HabitSchedules — no un modelo Eloquent.
+ *
+ * Convive en paralelo con `HabitResource` (legacy, basada en el modelo
+ * Eloquent) hasta que `HabitController` se migre al flujo DDD. Ese día,
+ * el legacy se elimina y este se renombra.
  */
-class HabitResource extends JsonResource
+final class HabitResource extends JsonResource
 {
     private FormActionGenerator $formActionGenerator;
 
-    public function __construct($resource)
-    {
+    public function __construct(
+        HabitResponse $resource,
+        private readonly ?HabitScheduleSnapshot $activeSchedule = null,
+    ) {
         parent::__construct($resource);
         $this->formActionGenerator = new FormActionGenerator;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
+        /** @var HabitResponse $r */
+        $r = $this->resource;
+
         return [
             'pk_name' => 'habit_id',
-            'habit_id' => $this->habit_id,
-            'name' => $this->name,
-            'description' => $this->description,
-            'color' => $this->color,
-            'habit_nature' => $this->habit_nature->value,
-            'habit_nature_label' => __($this->habit_nature->label()),
-            'desire_type' => $this->desire_type->value,
-            'desire_type_label' => __($this->desire_type->label()),
-            'implementation_intention' => $this->implementation_intention,
-            'location' => $this->location,
-            'cue' => $this->cue,
-            'reframe' => $this->reframe,
-            'is_active' => $this->is_active,
-            'created_at' => $this->created_at->format('Y-m-d'),
-            'created_at_iso_format_ll' => $this->created_at->isoFormat('LL'),
+            'habit_id' => $r->habitId,
+            'name' => $r->name,
+            'description' => $r->description,
+            'color' => $r->color,
+            'habit_nature' => $r->habitNature,
+            'habit_nature_label' => __(HabitNature::from($r->habitNature)->label()),
+            'desire_type' => $r->desireType,
+            'desire_type_label' => __(DesireType::from($r->desireType)->label()),
+            'implementation_intention' => $r->implementationIntention,
+            'location' => $r->location,
+            'cue' => $r->cue,
+            'reframe' => $r->reframe,
+            'is_active' => $r->isActive,
+            'created_at' => $r->createdAt !== null
+                ? Carbon::parse($r->createdAt)->format('Y-m-d')
+                : null,
+            'created_at_iso_format_ll' => $r->createdAt !== null
+                ? Carbon::parse($r->createdAt)->isoFormat('LL')
+                : null,
             'update_action' => $this->formActionGenerator->setActionForm(
                 new ActionForm(
-                    url: route('backoffice.habits.update', $this->habit_id),
+                    url: route('backoffice.habits.update', $r->habitId),
                     method: FormActionGenerator::HTTP_METHOD_PUT,
                 )
             )->getActionForm(),
             'delete_action' => $this->formActionGenerator->setActionForm(
                 new ActionForm(
-                    url: route('backoffice.habits.destroy', $this->habit_id),
+                    url: route('backoffice.habits.destroy', $r->habitId),
                     method: FormActionGenerator::HTTP_METHOD_DELETE,
                 )
             )->getActionForm(),
-            'active_schedule' => $this->whenLoaded('schedules', function () {
-                $schedule = $this->schedules->where('is_active', true)->first();
-
-                return $schedule ? new HabitScheduleResource($schedule) : null;
-            }),
+            'active_schedule' => $this->activeSchedule !== null
+                ? (new ActiveScheduleResource($this->activeSchedule))->resolve()
+                : null,
         ];
     }
 }

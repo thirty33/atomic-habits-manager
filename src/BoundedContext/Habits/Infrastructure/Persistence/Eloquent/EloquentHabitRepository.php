@@ -125,6 +125,7 @@ final readonly class EloquentHabitRepository implements HabitRepository
     public function pendingRebuildIds(): array
     {
         return $this->model->newQuery()
+            ->where('is_active', true)
             ->where('needs_occurrence_rebuild', true)
             ->pluck('habit_id')
             ->map(fn ($id) => (int) $id)
@@ -138,12 +139,11 @@ final readonly class EloquentHabitRepository implements HabitRepository
             ->whereExists(function ($query): void {
                 $query->select(\Illuminate\Support\Facades\DB::raw(1))
                     ->from('habit_occurrences')
-                    ->whereColumn('habit_occurrences.habit_id', 'habits.habit_id')
-                    ->whereNull('habit_occurrences.deleted_at');
+                    ->whereColumn('habit_occurrences.habit_id', 'habits.habit_id');
             })
             ->whereRaw(
-                '(SELECT MAX(scheduled_date) FROM habit_occurrences '
-                .'WHERE habit_occurrences.habit_id = habits.habit_id AND habit_occurrences.deleted_at IS NULL) <= ?',
+                '(SELECT MAX(occurrence_date) FROM habit_occurrences '
+                .'WHERE habit_occurrences.habit_id = habits.habit_id) <= ?',
                 [$thresholdYmd],
             )
             ->pluck('habit_id')

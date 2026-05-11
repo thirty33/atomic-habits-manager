@@ -1,23 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Backoffice;
 
-use App\Actions\HabitSchedules\CreateHabitScheduleAction;
-use App\Actions\HabitSchedules\UpdateHabitScheduleAction;
 use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\HabitScheduleRequest;
 use App\Http\Requests\UpdateHabitScheduleRequest;
 use App\Services\ToastNotificationService;
+use Core\BoundedContext\HabitSchedules\Application\Actions\CreateHabitSchedule;
+use Core\BoundedContext\HabitSchedules\Application\Actions\UpdateHabitSchedule;
+use Core\BoundedContext\HabitSchedules\Application\DTOs\CreateHabitScheduleData;
+use Core\BoundedContext\HabitSchedules\Application\DTOs\UpdateHabitScheduleData;
 use Illuminate\Http\JsonResponse;
 
 class HabitScheduleController extends Controller
 {
     public function __construct(private readonly ToastNotificationService $toastNotification) {}
 
-    public function store(HabitScheduleRequest $request): JsonResponse
+    public function store(HabitScheduleRequest $request, CreateHabitSchedule $useCase): JsonResponse
     {
-        CreateHabitScheduleAction::execute($request->validated());
+        $useCase(CreateHabitScheduleData::fromArray($request->validated()));
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,
@@ -27,9 +31,12 @@ class HabitScheduleController extends Controller
         );
     }
 
-    public function update(UpdateHabitScheduleRequest $request, int $id): JsonResponse
-    {
-        UpdateHabitScheduleAction::execute($id, $request->validated());
+    public function update(
+        UpdateHabitScheduleRequest $request,
+        UpdateHabitSchedule $useCase,
+        int $id,
+    ): JsonResponse {
+        $useCase(UpdateHabitScheduleData::fromArray($id, $request->validated()));
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,

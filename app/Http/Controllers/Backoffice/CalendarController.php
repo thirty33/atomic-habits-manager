@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Backoffice;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\HabitOccurrenceResource;
-use App\Repositories\OccurrenceRepository;
 use App\ViewModels\Backoffice\Calendar\GetCalendarViewModel;
-use Carbon\CarbonImmutable;
+use Core\BoundedContext\HabitOccurrences\Application\Actions\GetOccurrencesInRange;
+use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -27,18 +30,19 @@ class CalendarController extends Controller
         return response()->json($viewModel->toArray());
     }
 
-    public function occurrences(Request $request, OccurrenceRepository $repository): AnonymousResourceCollection
+    public function occurrences(Request $request, GetOccurrencesInRange $useCase): AnonymousResourceCollection
     {
         $request->validate([
             'start' => ['required', 'date'],
             'end' => ['required', 'date', 'after:start'],
         ]);
 
-        $start = CarbonImmutable::parse($request->input('start'));
-        $end = CarbonImmutable::parse($request->input('end'));
+        $snapshots = $useCase(
+            UserId::from((int) $request->user()->user_id),
+            OccurrenceDate::fromString(substr((string) $request->input('start'), 0, 10)),
+            OccurrenceDate::fromString(substr((string) $request->input('end'), 0, 10)),
+        );
 
-        $occurrences = $repository->getForUserInRange(auth()->id(), $start, $end);
-
-        return HabitOccurrenceResource::collection($occurrences);
+        return HabitOccurrenceResource::collection($snapshots);
     }
 }

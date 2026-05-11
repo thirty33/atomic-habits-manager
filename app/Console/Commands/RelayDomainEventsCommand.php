@@ -75,6 +75,15 @@ final class RelayDomainEventsCommand extends Command
             $jobClass::dispatch($entry->id);
             $bucketsDispatched[$jobClass] = true;
         }
+
+        // No subscribers: the entry is registry-only (event recorded but
+        // intentionally without listeners). Mark it completed at relay
+        // time so it doesn't sit forever in the dispatched-but-not-done
+        // limbo — markDispatched is about to run, and pending() filters
+        // by dispatched_at, so without this the row would never finish.
+        if ($bucketsDispatched === []) {
+            $this->outbox->markCompleted($entry->id);
+        }
     }
 
     /**

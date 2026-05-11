@@ -1,25 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Backoffice;
 
+use App\Enums\Mood;
 use App\Enums\NotificationType;
+use App\Enums\ReportEntryStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyReportRequest;
 use App\Http\Requests\SaveReportEntriesRequest;
 use App\Http\Requests\UpdateDailyReportRequest;
 use App\Http\Resources\DailyReportEntryResource;
 use App\Http\Resources\DailyReportResource;
+use App\Http\Resources\HabitForReportResource;
 use App\Http\Resources\HabitOccurrenceResource;
-use App\Services\DailyReports\DailyReportService;
 use App\Services\ToastNotificationService;
 use App\ViewModels\Backoffice\DailyReports\GetDailyReportsViewModel;
+use Core\BoundedContext\DailyReports\Application\Actions\DeleteDailyReport;
+use Core\BoundedContext\DailyReports\Application\Actions\FindDailyReportWithEntries;
+use Core\BoundedContext\DailyReports\Application\Actions\FindOrCreateDailyReportForDate;
+use Core\BoundedContext\DailyReports\Application\Actions\SaveDailyReportEntries;
+use Core\BoundedContext\DailyReports\Application\Actions\UpdateDailyReport;
+use Core\BoundedContext\DailyReports\Application\DTOs\SaveDailyReportEntriesData;
+use Core\BoundedContext\DailyReports\Application\DTOs\UpdateDailyReportData;
+use Core\BoundedContext\DailyReports\Domain\ValueObjects\DailyReportId;
+use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
+use Core\BoundedContext\HabitOccurrences\Application\Actions\GetOccurrencesForDate;
+use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
+use Core\BoundedContext\Habits\Application\Actions\FindActiveHabitsForUser;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
-class DailyReportController extends Controller
+final class DailyReportController extends Controller
 {
     public function __construct(
-        private readonly DailyReportService $service,
         private readonly ToastNotificationService $toastNotification,
     ) {}
 
@@ -35,11 +51,13 @@ class DailyReportController extends Controller
         return response()->json($viewModel->toArray());
     }
 
-    public function store(DailyReportRequest $request): JsonResponse
-    {
-        $report = $this->service->findOrCreateForDate(
-            auth()->id(),
-            $request->validated('report_date'),
+    public function store(
+        DailyReportRequest $request,
+        FindOrCreateDailyReportForDate $useCase,
+    ): JsonResponse {
+        $response = $useCase(
+            UserId::from((int) $request->user()->user_id),
+            ReportDate::fromString($request->validated('report_date')),
         );
 
         return $this->toastNotification->notify(
@@ -48,17 +66,21 @@ class DailyReportController extends Controller
             message: __('El reporte diario ha sido creado'),
             timeout: 5000,
             extra: [
-                'daily_report_id' => $report->daily_report_id,
-                'redirect_url' => route('backoffice.daily-reports.edit', $report->daily_report_id),
+                'daily_report_id' => $response->snapshot->dailyReportId,
+                'redirect_url' => route(
+                    'backoffice.daily-reports.edit',
+                    $response->snapshot->dailyReportId,
+                ),
             ],
         );
     }
 
-    public function edit(int $id): View
+    public function edit(int $id, FindDailyReportWithEntries $findReport): View
     {
-        $report = $this->service->findWithEntries($id);
-
-        abort_unless($report && $report->user_id === auth()->id(), 404);
+        $findReport(
+            DailyReportId::from($id),
+            UserId::from((int) auth()->user()->user_id),
+        );
 
         return view('backoffice.daily-reports.edit', [
             'json_url' => route('backoffice.daily-reports.edit-json', $id),
@@ -68,33 +90,34 @@ class DailyReportController extends Controller
         ]);
     }
 
-    public function editJson(int $id): JsonResponse
-    {
-        $report = $this->service->findWithEntries($id);
+    public function editJson(
+        int $id,
+        FindDailyReportWithEntries $findReport,
+        GetOccurrencesForDate $getOccurrences,
+        FindActiveHabitsForUser $findActiveHabits,
+    ): JsonResponse {
+        $userId = UserId::from((int) auth()->user()->user_id);
 
-        abort_unless($report && $report->user_id === auth()->id(), 404);
+        $reportResponse = $findReport(DailyReportId::from($id), $userId);
+        $reportSnapshot = $reportResponse->snapshot;
 
-        $occurrences = $this->service->getOccurrencesForDate(
-            auth()->id(),
-            $report->getRawOriginal('report_date'),
+        $occurrences = $getOccurrences(
+            $userId,
+            OccurrenceDate::fromString($reportSnapshot->reportDate),
         );
 
-        $habits = $this->service->getActiveHabitsForUser(auth()->id());
+        $habits = $findActiveHabits->execute($userId);
 
         return response()->json([
-            'report' => new DailyReportResource($report),
-            'entries' => DailyReportEntryResource::collection($report->entries),
+            'report' => new DailyReportResource($reportSnapshot),
+            'entries' => DailyReportEntryResource::collection($reportSnapshot->entries),
             'occurrences' => HabitOccurrenceResource::collection($occurrences),
-            'habits' => $habits->map(fn ($h) => [
-                'habit_id' => $h->habit_id,
-                'name' => $h->name,
-                'color' => $h->color,
-            ]),
-            'entry_statuses' => collect(\App\Enums\ReportEntryStatus::cases())->map(fn ($s) => [
+            'habits' => HabitForReportResource::collection($habits),
+            'entry_statuses' => collect(ReportEntryStatus::cases())->map(fn ($s) => [
                 'value' => $s->value,
                 'label' => $s->label(),
             ]),
-            'moods' => collect(\App\Enums\Mood::cases())->map(fn ($m) => [
+            'moods' => collect(Mood::cases())->map(fn ($m) => [
                 'value' => $m->value,
                 'label' => $m->label(),
                 'emoji' => $m->emoji(),
@@ -102,9 +125,15 @@ class DailyReportController extends Controller
         ]);
     }
 
-    public function update(UpdateDailyReportRequest $request, int $id): JsonResponse
-    {
-        $this->service->update($id, $request->validated());
+    public function update(
+        UpdateDailyReportRequest $request,
+        int $id,
+        UpdateDailyReport $useCase,
+    ): JsonResponse {
+        $useCase(
+            DailyReportId::from($id),
+            UpdateDailyReportData::fromArray($request->validated()),
+        );
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,
@@ -114,28 +143,34 @@ class DailyReportController extends Controller
         );
     }
 
-    public function saveEntries(SaveReportEntriesRequest $request, int $id): JsonResponse
-    {
-        $this->service->saveEntries($id, $request->validated('entries'));
-
-        $report = $this->service->findWithEntries($id);
+    public function saveEntries(
+        SaveReportEntriesRequest $request,
+        int $id,
+        SaveDailyReportEntries $useCase,
+    ): JsonResponse {
+        $response = $useCase(
+            DailyReportId::from($id),
+            SaveDailyReportEntriesData::fromArray($request->validated()),
+        );
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,
             title: __('Entradas guardadas'),
             message: __('Las entradas del reporte han sido guardadas'),
             timeout: 5000,
-            extra: ['entries' => DailyReportEntryResource::collection($report->entries)],
+            extra: ['entries' => DailyReportEntryResource::collection($response->snapshot->entries)],
         );
     }
 
-    public function destroy(int $id): JsonResponse
-    {
-        $report = $this->service->findWithEntries($id);
+    public function destroy(
+        int $id,
+        FindDailyReportWithEntries $findReport,
+        DeleteDailyReport $delete,
+    ): JsonResponse {
+        $userId = UserId::from((int) auth()->user()->user_id);
 
-        abort_unless($report && $report->user_id === auth()->id(), 404);
-
-        $this->service->delete($id);
+        $findReport(DailyReportId::from($id), $userId);
+        $delete(DailyReportId::from($id));
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,

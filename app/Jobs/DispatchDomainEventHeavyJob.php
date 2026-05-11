@@ -15,7 +15,8 @@ use Throwable;
 
 /**
  * Heavy bucket: long-running listeners (LLM, mass regeneration). Few
- * retries because each attempt is expensive.
+ * retries because each attempt is expensive. Shares the queue with the
+ * other buckets — only the tries / timeout / backoff differ.
  */
 final class DispatchDomainEventHeavyJob implements ShouldQueue
 {
@@ -28,10 +29,7 @@ final class DispatchDomainEventHeavyJob implements ShouldQueue
 
     public int $backoff = 300;
 
-    public function __construct(public int $outboxEntryId)
-    {
-        $this->onQueue('heavy');
-    }
+    public function __construct(public int $outboxEntryId) {}
 
     public function policy(): string
     {

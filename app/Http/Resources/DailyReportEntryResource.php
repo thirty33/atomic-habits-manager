@@ -1,37 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
-use App\Models\DailyReportEntry;
+use Core\BoundedContext\DailyReports\Application\ReadModels\DailyReportEntrySnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin DailyReportEntry
+ * @mixin DailyReportEntrySnapshot
  */
-class DailyReportEntryResource extends JsonResource
+final class DailyReportEntryResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        /** @var DailyReportEntrySnapshot $snap */
+        $snap = $this->resource;
+
         return [
-            'daily_report_entry_id' => $this->daily_report_entry_id,
-            'habit_occurrence_id' => $this->habit_occurrence_id,
-            'habit_id' => $this->habit_id,
-            'custom_activity' => $this->custom_activity,
-            'start_time' => $this->start_time,
-            'end_time' => $this->end_time,
-            'status' => $this->status->value,
-            'completed_at' => $this->completed_at?->toISOString(),
-            'notes' => $this->notes,
-            'habit' => $this->whenLoaded('habit', fn () => [
-                'habit_id' => $this->habit->habit_id,
-                'name' => $this->habit->name,
-                'color' => $this->habit->color,
-                'habit_nature' => $this->habit->habit_nature->value,
-                'habit_nature_label' => __($this->habit->habit_nature->label()),
-                'desire_type' => $this->habit->desire_type->value,
-                'desire_type_label' => __($this->habit->desire_type->label()),
-            ]),
+            'daily_report_entry_id' => $snap->dailyReportEntryId,
+            'daily_report_id' => $snap->dailyReportId,
+            'habit_occurrence_id' => $snap->habitOccurrenceId,
+            'habit_id' => $snap->habitId,
+            'custom_activity' => $snap->customActivity,
+            'start_time' => $snap->startTime,
+            'end_time' => $snap->endTime,
+            'status' => $snap->status,
+            'status_label' => __(\App\Enums\ReportEntryStatus::from($snap->status)->label()),
+            'completed_at' => $snap->completedAt,
+            'notes' => $snap->notes,
+            'created_at' => $snap->createdAt,
+            'updated_at' => $snap->updatedAt,
         ];
     }
 }

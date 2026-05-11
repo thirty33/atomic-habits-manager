@@ -1,23 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Backoffice;
 
-use App\Actions\Habits\CreateHabitAction;
-use App\Actions\Habits\DeleteHabitAction;
-use App\Actions\Habits\UpdateHabitAction;
 use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\HabitRequest;
 use App\Services\ToastNotificationService;
 use App\ViewModels\Backoffice\Habits\GetHabitsViewModel;
+use Core\BoundedContext\Habits\Application\Actions\CreateHabit;
+use Core\BoundedContext\Habits\Application\Actions\DeleteHabit;
+use Core\BoundedContext\Habits\Application\Actions\UpdateHabit;
+use Core\BoundedContext\Habits\Application\DTOs\CreateHabitData;
+use Core\BoundedContext\Habits\Application\DTOs\UpdateHabitData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class HabitController extends Controller
 {
-    public function __construct(private readonly ToastNotificationService $toastNotification)
-    {
-    }
+    public function __construct(private readonly ToastNotificationService $toastNotification) {}
 
     public function index(): View
     {
@@ -31,22 +33,33 @@ class HabitController extends Controller
         return response()->json($viewModel->toArray());
     }
 
-    public function store(HabitRequest $request): JsonResponse
+    public function store(HabitRequest $request, CreateHabit $createHabit): JsonResponse
     {
-        $habit = CreateHabitAction::execute($request->validated());
+        $response = $createHabit(
+            CreateHabitData::fromArray([
+                ...$request->validated(),
+                'user_id' => (int) auth()->id(),
+            ]),
+        );
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,
             title: __('Habito creado'),
-            message: __('El habito :name ha sido creado', ['name' => $habit->name]),
+            message: __('El habito :name ha sido creado', ['name' => $response->name]),
             timeout: 5000,
-            extra: ['habit_id' => $habit->habit_id],
+            extra: ['habit_id' => $response->habitId],
         );
     }
 
-    public function update(HabitRequest $request, int $id): JsonResponse
+    public function update(HabitRequest $request, int $id, UpdateHabit $updateHabit): JsonResponse
     {
-        UpdateHabitAction::execute($id, $request->validated());
+        $updateHabit(
+            UpdateHabitData::fromArray([
+                ...$request->validated(),
+                'habit_id' => $id,
+                'user_id' => (int) auth()->id(),
+            ]),
+        );
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,
@@ -56,9 +69,9 @@ class HabitController extends Controller
         );
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(int $id, DeleteHabit $deleteHabit): JsonResponse
     {
-        DeleteHabitAction::execute($id);
+        $deleteHabit($id, (int) auth()->id());
 
         return $this->toastNotification->notify(
             type: NotificationType::SUCCESS,

@@ -38,6 +38,9 @@ Thumbs.db
 # Claude Code y herramientas IA — internal
 /.claude/logs/
 /.claude/plans/
+/.claude/skills/aws-infrastructure/
+/.claude/skills/deployment-pipeline/
+/.claude/skills/server-management/
 /.ai/
 
 # Backups locales

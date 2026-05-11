@@ -38,5 +38,54 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (
+            \Core\BoundedContext\Habits\Domain\Exceptions\HabitNotFound $e,
+            \Illuminate\Http\Request $request,
+        ) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 404);
+            }
+
+            return response($e->getMessage(), 404);
+        });
+        $exceptions->render(function (
+            \Core\BoundedContext\HabitSchedules\Domain\Exceptions\HabitScheduleNotFound $e,
+            \Illuminate\Http\Request $request,
+        ) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 404);
+            }
+
+            return response($e->getMessage(), 404);
+        });
+        $exceptions->render(function (
+            \Core\BoundedContext\HabitOccurrences\Domain\Exceptions\HabitOccurrenceNotFound $e,
+            \Illuminate\Http\Request $request,
+        ) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 404);
+            }
+
+            return response($e->getMessage(), 404);
+        });
+        $exceptions->render(function (
+            \Core\BoundedContext\DailyReports\Domain\Exceptions\DailyReportNotFound $e,
+            \Illuminate\Http\Request $request,
+        ) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 404);
+            }
+
+            return response($e->getMessage(), 404);
+        });
+        $exceptions->render(function (
+            \Core\BoundedContext\DailyReports\Domain\Exceptions\DailyReportEntryNotFound $e,
+            \Illuminate\Http\Request $request,
+        ) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 404);
+            }
+
+            return response($e->getMessage(), 404);
+        });
     })->create();

@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Tests\Feature\Backoffice\AtomicIA;
 
 use App\Models\User;
+use Core\BoundedContext\Conversations\Application\Actions\ApproveAssistantMessage;
+use Core\BoundedContext\Conversations\Application\Actions\BanAssistantMessage;
 use Core\BoundedContext\Conversations\Application\Actions\PostUserMessage;
 use Core\BoundedContext\Conversations\Application\Actions\ProcessUserMessageWithAi;
 use Core\BoundedContext\Conversations\Application\Actions\StartConversation;
+use Core\BoundedContext\Conversations\Application\Ai\AiModerationProvider;
 use Core\BoundedContext\Conversations\Application\Ai\AiResponseProvider;
+use Core\BoundedContext\Conversations\Application\Broadcasting\ConversationBroadcaster;
 use Core\BoundedContext\Conversations\Application\DTOs\PostUserMessageData;
 use Core\BoundedContext\Conversations\Application\DTOs\ProcessUserMessageWithAiData;
 use Core\BoundedContext\Conversations\Domain\Events\AssistantMessageWasPosted;
@@ -23,6 +27,7 @@ use Core\Shared\Domain\Bus\DomainEventBus;
 use Core\Shared\Infrastructure\Events\Bus\InMemorySyncDomainEventBus;
 use Core\Shared\Infrastructure\Events\Bus\SpyDomainEventBus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\InMemoryAiModerationProvider;
 use Tests\Support\InMemoryAiResponseProvider;
 use Tests\TestCase;
 
@@ -32,11 +37,33 @@ final class ProcessUserMessageWithAiTest extends TestCase
 
     private InMemoryAiResponseProvider $aiProvider;
 
+    private InMemoryAiModerationProvider $aiModerator;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->aiProvider = new InMemoryAiResponseProvider;
         $this->app->instance(AiResponseProvider::class, $this->aiProvider);
+
+        // The collapsed pipeline (HandleAiResponseListener) runs moderation
+        // inline, so the moderator double must always be wired — otherwise
+        // any test that exercises the listener path will explode at the
+        // ModerateAssistantMessagePipe with a real LLM call.
+        $this->aiModerator = new InMemoryAiModerationProvider(
+            $this->app->make(ApproveAssistantMessage::class),
+            $this->app->make(BanAssistantMessage::class),
+        );
+        $this->app->instance(AiModerationProvider::class, $this->aiModerator);
+
+        // Stub the broadcaster: the pipeline's BroadcastFinalMessagePipe
+        // calls it after moderation. A null implementation keeps the test
+        // from reaching the real Echo binding.
+        $this->app->instance(ConversationBroadcaster::class, new class implements ConversationBroadcaster
+        {
+            public function statusChanged(int $conversationId, string $status): void {}
+
+            public function messageReady(int $conversationId, array $messagePayload): void {}
+        });
     }
 
     public function test_use_case_persists_pending_assistant_message_and_emits_event(): void
@@ -143,7 +170,7 @@ final class ProcessUserMessageWithAiTest extends TestCase
         $this->assertSame([], $this->aiProvider->calls);
     }
 
-    public function test_listener_path_runs_use_case_when_user_message_event_fires(): void
+    public function test_listener_path_runs_pipeline_when_user_message_event_fires(): void
     {
         // Use the real InMemorySync bus so the listener fires synchronously.
         $bus = $this->app->make(InMemorySyncDomainEventBus::class);
@@ -158,14 +185,20 @@ final class ProcessUserMessageWithAiTest extends TestCase
             body: 'hola',
         ));
 
-        // The listener (ScheduleAiResponse) is wired to UserMessageWasPosted.
+        // The listener (HandleAiResponseListener) is wired to
+        // UserMessageWasPosted and runs the full collapsed pipeline:
+        // generate → persist pending → moderate (default decision is
+        // 'approve') → broadcast. The assistant message ends up Approved,
+        // not Pending — the moderation pipe runs inline in the same
+        // transaction.
         $this->assertCount(1, $this->aiProvider->calls);
         $this->assertSame('hola', $this->aiProvider->calls[0]['user_message']);
+        $this->assertCount(1, $this->aiModerator->calls);
 
         $this->assertDatabaseHas('messages', [
             'conversation_id' => $start->conversationId,
             'role' => MessageRole::Assistant->value,
-            'status' => MessageStatus::Pending->value,
+            'status' => MessageStatus::Approved->value,
         ]);
     }
 

@@ -1,35 +1,40 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
-use App\Models\HabitOccurrence;
+use Core\BoundedContext\HabitOccurrences\Application\ReadModels\HabitOccurrenceSnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin HabitOccurrence
+ * @mixin HabitOccurrenceSnapshot
  */
 class HabitOccurrenceResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        /** @var HabitOccurrenceSnapshot $snap */
+        $snap = $this->resource;
+
         return [
-            'habit_occurrence_id' => $this->habit_occurrence_id,
-            'habit_id' => $this->habit_id,
-            'habit_schedule_id' => $this->habit_schedule_id,
-            'occurrence_date' => $this->occurrence_date->format('Y-m-d'),
-            'start_time' => $this->start_time,
-            'end_time' => $this->end_time,
-            'habit' => $this->whenLoaded('habit', fn () => [
-                'habit_id' => $this->habit->habit_id,
-                'name' => $this->habit->name,
-                'color' => $this->habit->color,
-                'habit_nature' => $this->habit->habit_nature->value,
-                'habit_nature_label' => __($this->habit->habit_nature->label()),
-                'desire_type' => $this->habit->desire_type->value,
-                'desire_type_label' => __($this->habit->desire_type->label()),
-                'is_active' => $this->habit->is_active,
-            ]),
+            'habit_occurrence_id' => $snap->habitOccurrenceId,
+            'habit_id' => $snap->habitId,
+            'habit_schedule_id' => $snap->habitScheduleId,
+            'occurrence_date' => $snap->occurrenceDate,
+            'start_time' => $snap->startTime,
+            'end_time' => $snap->endTime,
+            'habit' => $snap->habitName === null ? null : [
+                'habit_id' => $snap->habitId,
+                'name' => $snap->habitName,
+                'color' => $snap->habitColor,
+                'habit_nature' => $snap->habitNature,
+                'habit_nature_label' => __(\App\Enums\HabitNature::from($snap->habitNature)->label()),
+                'desire_type' => $snap->desireType,
+                'desire_type_label' => __(\App\Enums\DesireType::from($snap->desireType)->label()),
+                'is_active' => $snap->habitIsActive,
+            ],
         ];
     }
 }

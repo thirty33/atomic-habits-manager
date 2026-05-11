@@ -1,43 +1,52 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Jobs\BatchExtendOccurrencesJob;
 use App\Jobs\BatchGenerateOccurrencesJob;
-use App\Repositories\HabitRepository;
-use App\Repositories\OccurrenceRepository;
 use Carbon\CarbonImmutable;
+use Core\BoundedContext\Habits\Application\Actions\ListHabitsPendingOccurrenceExtension;
+use Core\BoundedContext\Habits\Application\Actions\ListHabitsPendingOccurrenceRebuild;
 use Illuminate\Console\Command;
 
-class GenerateHabitOccurrencesCommand extends Command
+/**
+ * Cron diario que mantiene actualizado el horizonte de occurrences:
+ *
+ *  - Rebuild: encola los habits cuyo flag `needs_occurrence_rebuild` está
+ *    activo (porque algún listener cross-BC lo prendió tras un cambio).
+ *  - Extend: encola los habits cuyo último `scheduled_date` cae antes del
+ *    threshold rolling (11 meses). El job extiende sin regenerar todo.
+ *
+ * El command vive en Infrastructure y orquesta — chunk + dispatch — pero
+ * no toca repositorios directamente. Las queries pasan por Use Cases
+ * para mantener la regla "Console → Application → Domain".
+ */
+final class GenerateHabitOccurrencesCommand extends Command
 {
     protected $signature = 'habits:generate-occurrences {--chunk=50}';
 
     protected $description = 'Generate habit occurrences for all users';
 
-    public function __construct(
-        private HabitRepository $habitRepository,
-        private OccurrenceRepository $occurrenceRepository,
-    ) {
-        parent::__construct();
-    }
-
-    public function handle(): int
-    {
+    public function handle(
+        ListHabitsPendingOccurrenceRebuild $listRebuild,
+        ListHabitsPendingOccurrenceExtension $listExtension,
+    ): int {
         $chunkSize = (int) $this->option('chunk');
 
-        // Step 1: Rebuild — habits with flag = true
-        $needsRebuild = $this->habitRepository->getHabitIdsNeedingRebuild();
-        $needsRebuild->chunk($chunkSize)->each(fn ($ids) => BatchGenerateOccurrencesJob::dispatch($ids->values()->toArray())
-        );
-        $this->components->info("Rebuild: {$needsRebuild->count()} habits dispatched.");
+        $rebuildIds = $listRebuild->execute();
+        foreach (array_chunk($rebuildIds, $chunkSize) as $chunk) {
+            BatchGenerateOccurrencesJob::dispatch($chunk);
+        }
+        $this->components->info('Rebuild: '.count($rebuildIds).' habits dispatched.');
 
-        // Step 2: Extend — habits whose last occurrence is < today + 11 months
-        $threshold = CarbonImmutable::today()->addMonths(11);
-        $needsExtension = $this->habitRepository->getHabitIdsNeedingExtension($threshold);
-        $needsExtension->chunk($chunkSize)->each(fn ($ids) => BatchExtendOccurrencesJob::dispatch($ids->values()->toArray())
-        );
-        $this->components->info("Extend: {$needsExtension->count()} habits dispatched.");
+        $thresholdYmd = CarbonImmutable::today()->addMonths(11)->toDateString();
+        $extendIds = $listExtension->execute($thresholdYmd);
+        foreach (array_chunk($extendIds, $chunkSize) as $chunk) {
+            BatchExtendOccurrencesJob::dispatch($chunk);
+        }
+        $this->components->info('Extend: '.count($extendIds).' habits dispatched.');
 
         return self::SUCCESS;
     }
