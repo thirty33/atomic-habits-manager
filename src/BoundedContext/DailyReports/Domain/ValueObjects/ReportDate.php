@@ -22,7 +22,17 @@ final class ReportDate extends ValueObject
         }
 
         // Normalize to midnight to avoid time-component drift.
-        return new self($parsed->setTime(0, 0, 0));
+        $normalized = $parsed->setTime(0, 0, 0);
+
+        // Invariant: a DailyReport logs a day that has already happened.
+        $today = (new DateTimeImmutable)->setTime(0, 0, 0);
+        if ($normalized > $today) {
+            throw new InvalidArgumentException(
+                sprintf('ReportDate "%s" cannot be in the future.', $date)
+            );
+        }
+
+        return new self($normalized);
     }
 
     public function value(): string

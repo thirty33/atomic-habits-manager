@@ -168,8 +168,8 @@ final readonly class EloquentHabitOccurrenceRepository implements HabitOccurrenc
                 ? (int) $attrs['habit_schedule_id']
                 : null,
             occurrenceDate: (string) $attrs['occurrence_date'],
-            startTime: (string) $attrs['start_time'],
-            endTime: (string) $attrs['end_time'],
+            startTime: substr((string) $attrs['start_time'], 0, 5),
+            endTime: substr((string) $attrs['end_time'], 0, 5),
             habitName: $habit?->name,
             habitColor: $habit?->color,
             habitNature: $habit?->habit_nature?->value,

@@ -105,7 +105,7 @@ export default function useReportStore(jsonUrl, saveEntriesUrl, updateReportUrl)
                     ...e,
                     is_free_activity: !e.habit_id && !e.habit_occurrence_id,
                 }));
-                state.entries = serverEntries.sort(sortByStartTime);
+                state.entries = serverEntries;
             }
 
             state.pendingEntryChanges = false;

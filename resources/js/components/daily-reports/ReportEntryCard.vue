@@ -16,9 +16,9 @@ const props = defineProps({
 const store = inject('reportStore');
 
 const habitSelectValue = computed(() => {
-    if (props.entry.custom_activity !== null && props.entry.custom_activity !== undefined && !props.entry.habit_id) return 'free';
     if (props.entry.habit_id) return String(props.entry.habit_id);
     if (props.entry.habit_occurrence_id && props.entry.habit) return String(props.entry.habit.habit_id);
+    if (!props.entry.habit_id && !props.entry.habit_occurrence_id) return 'free';
     return '';
 });
 

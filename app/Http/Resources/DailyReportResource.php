@@ -1,55 +1,64 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
-use App\Enums\ReportEntryStatus;
-use App\Models\DailyReport;
 use App\Services\Frontend\FormActionGenerator;
 use App\Services\Frontend\UIElements\ActionForm;
+use Core\BoundedContext\DailyReports\Application\ReadModels\DailyReportSnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin DailyReport
+ * @mixin DailyReportSnapshot
  */
-class DailyReportResource extends JsonResource
+final class DailyReportResource extends JsonResource
 {
-    private FormActionGenerator $formActionGenerator;
-
-    public function __construct($resource)
-    {
+    public function __construct(
+        mixed $resource,
+        private readonly FormActionGenerator $formActionGenerator = new FormActionGenerator,
+    ) {
         parent::__construct($resource);
-        $this->formActionGenerator = new FormActionGenerator;
     }
 
     public function toArray(Request $request): array
     {
-        $entries = $this->whenLoaded('entries', fn () => $this->entries, collect());
-        $total = $entries->count() ?: ($this->entries_count ?? 0);
-        $reported = $entries->count() > 0
-            ? $entries->where('status', '!=', ReportEntryStatus::Pending)->count()
-            : ($this->entries_reported_count ?? 0);
+        /** @var DailyReportSnapshot $snap */
+        $snap = $this->resource;
+
+        $entries = $snap->entries;
+        $total = count($entries);
+        $reported = 0;
+        foreach ($entries as $entry) {
+            if ($entry->status !== \App\Enums\ReportEntryStatus::Pending->value) {
+                $reported++;
+            }
+        }
 
         return [
             'pk_name' => 'daily_report_id',
-            'daily_report_id' => $this->daily_report_id,
-            'report_date' => $this->report_date?->format('d/m/Y'),
-            'report_date_label' => $this->report_date ? $this->getRawOriginal('report_date') : null,
-            'report_date_formatted' => $this->report_date?->isoFormat('LL'),
-            'notes' => $this->notes,
-            'mood' => $this->mood?->value,
-            'mood_label' => $this->mood ? $this->mood->emoji().' '.$this->mood->label() : '—',
+            'daily_report_id' => $snap->dailyReportId,
+            'user_id' => $snap->userId,
+            'report_date' => $snap->reportDate,
+            'notes' => $snap->notes,
+            'mood' => $snap->mood,
+            'mood_label' => $snap->mood !== null
+                ? __(\App\Enums\Mood::from($snap->mood)->emoji().' '.\App\Enums\Mood::from($snap->mood)->label())
+                : '—',
             'entries_count' => $total,
             'entries_reported' => $reported,
             'progress_label' => $total > 0 ? "{$reported}/{$total} reportados" : 'Sin entradas',
             'is_complete' => $total > 0 && $reported === $total,
-            'edit_url' => route('backoffice.daily-reports.edit', $this->daily_report_id),
+            'edit_url' => route('backoffice.daily-reports.edit', $snap->dailyReportId),
             'delete_action' => $this->formActionGenerator->setActionForm(
                 new ActionForm(
-                    url: route('backoffice.daily-reports.destroy', $this->daily_report_id),
+                    url: route('backoffice.daily-reports.destroy', $snap->dailyReportId),
                     method: FormActionGenerator::HTTP_METHOD_DELETE,
                 )
             )->getActionForm(),
+            'created_at' => $snap->createdAt,
+            'updated_at' => $snap->updatedAt,
         ];
     }
 }
