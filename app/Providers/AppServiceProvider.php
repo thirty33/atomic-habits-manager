@@ -34,6 +34,16 @@ class AppServiceProvider extends ServiceProvider
             \Core\Shared\Infrastructure\Logging\LaravelLogger::class,
         );
 
+        $this->app->bind(
+            \Core\Shared\Application\Persistence\TransactionManager::class,
+            \Core\Shared\Infrastructure\Persistence\Eloquent\EloquentTransactionManager::class,
+        );
+
+        $this->app->bind(
+            \Core\Shared\Application\Pipeline\PipelineRunner::class,
+            \Core\Shared\Infrastructure\Pipeline\IlluminatePipelineRunner::class,
+        );
+
         // Cargar Blueprint Macros dinamicamente
         foreach (glob(app_path('Macros/Blueprint/*.php')) as $filename) {
             $filename = basename($filename, '.php');

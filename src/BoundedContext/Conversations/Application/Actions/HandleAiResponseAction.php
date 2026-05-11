@@ -14,8 +14,8 @@ use Core\BoundedContext\Conversations\Application\Actions\HandleAiResponse\Persi
 use Core\BoundedContext\Conversations\Application\Actions\HandleAiResponse\PostFallbackIfBannedPipe;
 use Core\BoundedContext\Conversations\Application\DTOs\HandleAiResponseData;
 use Core\Shared\Application\Logging\Logger;
-use Illuminate\Pipeline\Pipeline;
-use Illuminate\Support\Facades\DB;
+use Core\Shared\Application\Persistence\TransactionManager;
+use Core\Shared\Application\Pipeline\PipelineRunner;
 use Throwable;
 
 /**
@@ -44,7 +44,8 @@ final readonly class HandleAiResponseAction
      * @param  list<class-string>  $pipes
      */
     public function __construct(
-        private Pipeline $pipeline,
+        private PipelineRunner $pipeline,
+        private TransactionManager $transactions,
         private Logger $logger,
         private array $pipes = [
             LoadAndValidateConversationPipe::class,
@@ -61,16 +62,13 @@ final readonly class HandleAiResponseAction
     {
         $this->logger->info('[ai-pipeline] action.enter', ['conversation_id' => $data->conversationId]);
         try {
-            DB::transaction(function () use ($data): void {
+            $this->transactions->execute(function () use ($data): void {
                 $this->logger->info('[ai-pipeline] tx.begin', ['conversation_id' => $data->conversationId]);
                 $passable = new HandleAiResponsePassable(
                     conversationId: $data->conversationId,
                 );
 
-                $this->pipeline
-                    ->send($passable)
-                    ->through($this->pipes)
-                    ->thenReturn();
+                $this->pipeline->run($passable, $this->pipes);
                 $this->logger->info('[ai-pipeline] tx.about_to_commit', ['conversation_id' => $data->conversationId]);
             });
             $this->logger->info('[ai-pipeline] action.exit committed', ['conversation_id' => $data->conversationId]);
