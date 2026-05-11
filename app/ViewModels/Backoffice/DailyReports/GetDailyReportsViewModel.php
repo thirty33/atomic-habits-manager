@@ -1,13 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\ViewModels\Backoffice\DailyReports;
 
 use App\Constants\Heroicons;
-use App\Enums\Filters\DailyReportFilters;
-use App\Filters\FilterValue;
 use App\Http\Resources\DailyReportResource;
 use App\Overrides\LengthAwarePaginator;
-use App\Services\DailyReports\DailyReportService;
 use App\Services\Frontend\ButtonGenerator;
 use App\Services\Frontend\FormActionGenerator;
 use App\Services\Frontend\FormFieldsGenerator;
@@ -24,13 +23,16 @@ use App\Services\Frontend\UIElements\FormFields\SelectField;
 use App\Services\Frontend\UIElements\FormFields\SelectOptions\MoodOption;
 use App\Services\Frontend\UIElements\Modals\Modal;
 use App\Services\Frontend\UIElements\Modals\ModalStep;
-use App\Services\ViewModels\FilterService;
 use App\Traits\ViewModels\WithPerPage;
 use App\ViewModels\Contracts\Datatable;
 use App\ViewModels\ViewModel;
+use Core\BoundedContext\DailyReports\Application\Actions\GetDailyReportsForUser;
+use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsCriteria;
+use Core\BoundedContext\DailyReports\Domain\ValueObjects\Mood;
+use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Exception;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use Illuminate\Pipeline\Pipeline;
 
 final class GetDailyReportsViewModel extends ViewModel implements Datatable
 {
@@ -41,12 +43,10 @@ final class GetDailyReportsViewModel extends ViewModel implements Datatable
     const ROUTE_STORE = 'backoffice.daily-reports.store';
 
     public function __construct(
-        private readonly Pipeline $pipeline,
         private readonly TableGenerator $tableGenerator,
-        private readonly FilterService $filterService,
         private readonly ButtonGenerator $buttonGenerator,
         private readonly ModalGenerator $modalGenerator,
-        private readonly DailyReportService $service,
+        private readonly GetDailyReportsForUser $useCase,
     ) {
         $this->tableGenerator->initSorter(
             request(
@@ -113,27 +113,45 @@ final class GetDailyReportsViewModel extends ViewModel implements Datatable
             ->getColumns();
     }
 
-    protected function tableFilters(): array
-    {
-        return array_merge(
-            $this->filterService->generateSorterFilter(key: 'sorter'),
-            $this->filterService->generateNormalFilter(key: 'mood'),
-            $this->filterService->generateRangeFilter(key: 'date_range', prefix: 'date_range'),
-        );
-    }
-
     public function tableData(): ResourceCollection|LengthAwarePaginator
     {
-        $models = $this->pipeline
-            ->send($this->service->queryForUser(auth()->id()))
-            ->through(
-                collect($this->tableFilters())
-                    ->map(fn ($filter, $value) => DailyReportFilters::from($value)->create(filter: new FilterValue($filter)))
-                    ->values()
-                    ->all()
-            )->thenReturn();
+        $userId = (int) auth()->id();
 
-        return DailyReportResource::collection($models->paginate($this->perPage(self::PER_PAGE)))->resource;
+        $sorter = (array) request()->input('sorter', ['column' => 'report_date', 'direction' => 'desc']);
+        $sortBy = in_array($sorter['column'] ?? '', ['report_date', 'mood'], true)
+            ? $sorter['column']
+            : 'report_date';
+        $sortDir = ($sorter['direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $criteria = new DailyReportsCriteria(
+            userId: UserId::from($userId),
+            fromDate: $this->fromDate(),
+            toDate: $this->toDate(),
+            mood: $this->mood(),
+            page: (int) request()->input('page', 1),
+            perPage: $this->perPage(self::PER_PAGE),
+            sortBy: $sortBy,
+            sortDir: $sortDir,
+        );
+
+        $page = ($this->useCase)($criteria);
+
+        $rendered = [];
+        foreach ($page->items->items() as $report) {
+            $snap = \Core\BoundedContext\DailyReports\Application\Responses\DailyReportResponse::from($report)->snapshot;
+            $rendered[] = (new DailyReportResource($snap))->resolve();
+        }
+
+        return new LengthAwarePaginator(
+            items: $rendered,
+            total: $page->total,
+            perPage: $page->perPage,
+            currentPage: $page->page,
+            options: [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ],
+        );
     }
 
     public function tableButtons(): array
@@ -227,5 +245,26 @@ final class GetDailyReportsViewModel extends ViewModel implements Datatable
                 ))->required()
             )
             ->getFields();
+    }
+
+    private function fromDate(): ?ReportDate
+    {
+        $value = request()->input('date_range_from');
+
+        return $value !== null && $value !== '' ? ReportDate::fromString($value) : null;
+    }
+
+    private function toDate(): ?ReportDate
+    {
+        $value = request()->input('date_range_to');
+
+        return $value !== null && $value !== '' ? ReportDate::fromString($value) : null;
+    }
+
+    private function mood(): ?Mood
+    {
+        $value = request()->input('mood');
+
+        return $value !== null && $value !== '' ? Mood::from($value) : null;
     }
 }

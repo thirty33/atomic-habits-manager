@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\DailyReports\Infrastructure\Persistence\Eloquent;
 
-use Core\BoundedContext\DailyReports\Application\Criteria\DailyReportsCriteria;
+use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsCriteria;
 use Illuminate\Database\Eloquent\Builder;
 
 /**

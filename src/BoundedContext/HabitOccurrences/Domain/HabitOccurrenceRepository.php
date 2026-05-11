@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\HabitOccurrences\Domain;
 
-use Core\BoundedContext\HabitOccurrences\Application\ReadModels\HabitOccurrenceSnapshot;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\HabitOccurrenceId;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 
+/**
+ * Write-side port for the HabitOccurrence aggregate. CQRS: read-side
+ * queries that return projections live in HabitOccurrenceReader (Application).
+ *
+ * Purity rules: zero imports from Application, Illuminate, or App\.
+ */
 interface HabitOccurrenceRepository
 {
     public function find(HabitOccurrenceId $id): ?HabitOccurrence;
@@ -32,21 +36,4 @@ interface HabitOccurrenceRepository
     public function futureIdsForHabit(HabitId $habitId, OccurrenceDate $today): array;
 
     public function lastDateForHabit(HabitId $habitId): ?OccurrenceDate;
-
-    /**
-     * @return list<HabitOccurrenceSnapshot>
-     */
-    public function findForUserInRange(
-        UserId $userId,
-        OccurrenceDate $from,
-        OccurrenceDate $to,
-    ): array;
-
-    /**
-     * @return list<HabitOccurrenceSnapshot>
-     */
-    public function findForUserOnDate(
-        UserId $userId,
-        OccurrenceDate $date,
-    ): array;
 }

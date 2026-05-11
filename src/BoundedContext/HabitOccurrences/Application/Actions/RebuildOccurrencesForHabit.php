@@ -12,7 +12,7 @@ use Core\BoundedContext\HabitOccurrences\Domain\Services\RecurrenceResolver;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\HabitSchedules\Domain\HabitScheduleRepository;
+use Core\BoundedContext\HabitSchedules\Application\HabitScheduleReader;
 use Core\BoundedContext\HabitSchedules\Domain\ValueObjects\Concretes\HabitScheduleId;
 use DateTimeImmutable;
 
@@ -20,7 +20,7 @@ final readonly class RebuildOccurrencesForHabit
 {
     public function __construct(
         private HabitOccurrenceRepository $occurrenceRepository,
-        private HabitScheduleRepository $scheduleRepository,
+        private HabitScheduleReader $scheduleReader,
         private HabitRepository $habitRepository,
         private RecurrenceResolver $resolver,
         private ScheduleSnapshotToRecurrenceSpec $translator,
@@ -39,7 +39,7 @@ final readonly class RebuildOccurrencesForHabit
             $this->occurrenceRepository->deleteByIds($futureIds);
         }
 
-        $snapshots = $this->scheduleRepository->findActiveByHabitIds([$habitId->value()]);
+        $snapshots = $this->scheduleReader->findActiveByHabitIds([$habitId->value()]);
 
         $occurrences = $this->buildOccurrences($habitId, $snapshots, $todayDate);
 

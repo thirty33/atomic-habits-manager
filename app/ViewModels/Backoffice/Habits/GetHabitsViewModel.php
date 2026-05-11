@@ -1,15 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\ViewModels\Backoffice\Habits;
 
 use App\Constants\Heroicons;
 use App\Enums\DesireType;
-use App\Enums\Filters\HabitFilters;
 use App\Enums\HabitNature;
 use App\Enums\RecurrenceType;
-use App\Filters\FilterValue;
 use App\Http\Resources\HabitResource;
-use App\Models\Habit;
 use App\Overrides\LengthAwarePaginator;
 use App\Services\Frontend\ButtonGenerator;
 use App\Services\Frontend\FormActionGenerator;
@@ -41,41 +40,55 @@ use App\Services\Frontend\UIElements\FormFields\TimeField;
 use App\Services\Frontend\UIElements\Modals\Modal;
 use App\Services\Frontend\UIElements\Modals\ModalStep;
 use App\Services\Frontend\UIElements\ResourceDetailLine;
-use App\Services\ViewModels\FilterService;
 use App\Traits\ViewModels\WithPerPage;
 use App\ViewModels\Contracts\Datatable;
 use App\ViewModels\ViewModel;
+use Core\BoundedContext\Habits\Application\Actions\ListAllHabits;
+use Core\BoundedContext\Habits\Application\Actions\ListHabits;
+use Core\BoundedContext\Habits\Application\DTOs\ListHabitsData;
+use Core\BoundedContext\Habits\Application\Responses\HabitResponse;
+use Core\BoundedContext\HabitSchedules\Application\HabitScheduleReader;
 use Exception;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use Illuminate\Pipeline\Pipeline;
 
+/**
+ * ViewModel del listado de Habits — versión DDD, paralela al legacy
+ * `GetHabitsViewModel`.
+ *
+ * Responsabilidades:
+ *  - Construir `ListHabitsData` desde `request()` y delegar al Use Case.
+ *  - Componer cross-aggregate: pre-pedir los active schedules al puerto
+ *    `HabitScheduleRepository` (un solo viaje, evita N+1).
+ *  - Pasar cada `HabitResponse` + opcional `HabitScheduleSnapshot` al
+ *    Resource (`HabitResourceDdd`) para Stage-2 de Two-Step View.
+ *
+ * Convive con el legacy hasta que `HabitController::json()` se migre.
+ */
 final class GetHabitsViewModel extends ViewModel implements Datatable
 {
     use WithPerPage;
 
-    const PER_PAGE = 10;
+    public const PER_PAGE = 10;
 
-    const ROUTE_BACKOFFICE_HABITS_STORE = 'backoffice.habits.store';
+    public const ROUTE_BACKOFFICE_HABITS_STORE = 'backoffice.habits.store';
 
-    const ROUTE_BACKOFFICE_HABIT_SCHEDULES_STORE = 'backoffice.habit-schedules.store';
+    public const ROUTE_BACKOFFICE_HABIT_SCHEDULES_STORE = 'backoffice.habit-schedules.store';
 
     public function __construct(
-        private readonly Pipeline $pipeline,
         private readonly TableGenerator $tableGenerator,
-        private readonly FilterService $filterService,
         private readonly ButtonGenerator $buttonGenerator,
         private readonly FormActionGenerator $formActionGenerator,
         private readonly ModalGenerator $modalGenerator,
         private readonly ResourceDetailGenerator $resourceDetailGenerator,
+        private readonly ListHabits $listHabits,
+        private readonly ListAllHabits $listAllHabits,
+        private readonly HabitScheduleReader $habitSchedules,
         public readonly bool $paginated = true,
     ) {
         $this->tableGenerator->initSorter(
             request(
                 key: 'sorter',
-                default: [
-                    'column' => 'created_at',
-                    'direction' => 'desc',
-                ]
+                default: ['column' => 'created_at', 'direction' => 'desc']
             )
         );
     }
@@ -143,54 +156,85 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
                     label: __('Acciones'),
                     key: 'actions',
                     actions: [
-                        new ActionColumn(
-                            label: 'Ver',
-                            class: ButtonGenerator::SHOW_CSS_CLASS,
-                            event: 'show',
-                        ),
-                        new ActionColumn(
-                            label: 'Editar',
-                            class: ButtonGenerator::EDIT_CSS_CLASS,
-                            event: 'edit',
-                        ),
-                        new ActionColumn(
-                            label: 'Eliminar',
-                            class: ButtonGenerator::DELETE_CSS_CLASS,
-                            event: 'remove',
-                        ),
+                        new ActionColumn(label: 'Ver', class: ButtonGenerator::SHOW_CSS_CLASS, event: 'show'),
+                        new ActionColumn(label: 'Editar', class: ButtonGenerator::EDIT_CSS_CLASS, event: 'edit'),
+                        new ActionColumn(label: 'Eliminar', class: ButtonGenerator::DELETE_CSS_CLASS, event: 'remove'),
                     ]
                 )
             )
             ->getColumns();
     }
 
-    protected function tableFilters(): array
+    public function tableData(): ResourceCollection|LengthAwarePaginator
     {
-        return array_merge(
-            $this->filterService->generateSorterFilter(key: 'sorter'),
-            $this->filterService->generateNormalFilter(key: 'query'),
-            $this->filterService->generateNormalFilter(key: 'habit_nature'),
-            $this->filterService->generateNormalFilter(key: 'desire_type'),
-            $this->filterService->generateNormalFilter(key: 'is_active'),
+        $userId = (int) auth()->id();
+
+        if (! $this->paginated) {
+            $habits = ($this->listAllHabits)($userId)->items;
+            $rendered = $this->renderHabits($habits);
+
+            // Reusamos LengthAwarePaginator para mantener el contrato Datatable
+            // aunque no haya paginación real — total = items, perPage = items.
+            return new LengthAwarePaginator(
+                items: $rendered,
+                total: count($rendered),
+                perPage: max(1, count($rendered)),
+                currentPage: 1,
+            );
+        }
+
+        $data = ListHabitsData::fromArray([
+            'user_id' => $userId,
+            'query' => request('query'),
+            'habit_nature' => request('habit_nature'),
+            'desire_type' => request('desire_type'),
+            'is_active' => request('is_active'),
+            'sort_field' => request('sorter.column', 'created_at'),
+            'sort_direction' => request('sorter.direction', 'desc'),
+            'page' => (int) request('page', 1),
+            'per_page' => $this->perPage(self::PER_PAGE),
+        ]);
+
+        $paginated = ($this->listHabits)($data);
+        $rendered = $this->renderHabits($paginated->data);
+
+        return new LengthAwarePaginator(
+            items: $rendered,
+            total: $paginated->meta['total'],
+            perPage: $paginated->meta['per_page'],
+            currentPage: $paginated->meta['current_page'],
+            options: [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ],
         );
     }
 
-    public function tableData(): ResourceCollection|LengthAwarePaginator
+    /**
+     * Stage-2 render: aplica HabitResourceDdd (Transform View) sobre cada
+     * HabitResponse. Pre-pide los active schedules al repositorio del BC
+     * `HabitSchedules` con un solo viaje (evita N+1) y entrega un map
+     * indexado por habit_id al Resource.
+     *
+     * @param  list<HabitResponse>  $habits
+     * @return list<array<string, mixed>>
+     */
+    private function renderHabits(array $habits): array
     {
-        $models = $this->pipeline
-            ->send(Habit::query()->where('user_id', auth()->id())->with('schedules'))
-            ->through(
-                collect($this->tableFilters())
-                    ->map(fn ($filter, $value) => HabitFilters::from($value)->create(filter: new FilterValue($filter)))
-                    ->values()
-                    ->all()
-            )->thenReturn();
-
-        if ($this->paginated) {
-            return HabitResource::collection($models->paginate($this->perPage(self::PER_PAGE)))->resource;
+        if ($habits === []) {
+            return [];
         }
 
-        return HabitResource::collection($models->get());
+        $habitIds = array_map(static fn (HabitResponse $h) => $h->habitId, $habits);
+
+        $activeSchedules = $this->habitSchedules->findActiveByHabitIds($habitIds);
+
+        return array_map(
+            fn (HabitResponse $h) => (
+                new HabitResource($h, $activeSchedules[$h->habitId] ?? null)
+            )->resolve(),
+            $habits
+        );
     }
 
     public function tableButtons(): array

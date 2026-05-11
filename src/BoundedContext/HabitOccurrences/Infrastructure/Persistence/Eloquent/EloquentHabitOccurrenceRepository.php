@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Core\BoundedContext\HabitOccurrences\Infrastructure\Persistence\Eloquent;
 
 use App\Models\HabitOccurrence as HabitOccurrenceModel;
+use Core\BoundedContext\HabitOccurrences\Application\HabitOccurrenceReader;
 use Core\BoundedContext\HabitOccurrences\Application\ReadModels\HabitOccurrenceSnapshot;
 use Core\BoundedContext\HabitOccurrences\Domain\HabitOccurrence;
 use Core\BoundedContext\HabitOccurrences\Domain\HabitOccurrenceRepository;
@@ -17,7 +18,7 @@ use Core\BoundedContext\HabitSchedules\Domain\ValueObjects\Concretes\HabitSchedu
 use DateTimeImmutable;
 use Illuminate\Support\Carbon;
 
-final readonly class EloquentHabitOccurrenceRepository implements HabitOccurrenceRepository
+final readonly class EloquentHabitOccurrenceRepository implements HabitOccurrenceReader, HabitOccurrenceRepository
 {
     public function __construct(private HabitOccurrenceModel $model) {}
 

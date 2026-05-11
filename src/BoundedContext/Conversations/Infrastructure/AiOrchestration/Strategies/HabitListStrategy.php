@@ -8,15 +8,15 @@ use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Contracts\L
 use Core\BoundedContext\Habits\Domain\Habit;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\HabitSchedules\Application\HabitScheduleReader;
 use Core\BoundedContext\HabitSchedules\Application\ReadModels\HabitScheduleSnapshot;
-use Core\BoundedContext\HabitSchedules\Domain\HabitScheduleRepository;
 use Core\BoundedContext\HabitSchedules\Domain\ValueObjects\Concretes\RecurrenceType;
 
 final class HabitListStrategy implements ListableResource
 {
     public function __construct(
         private readonly HabitRepository $habits,
-        private readonly HabitScheduleRepository $schedules,
+        private readonly HabitScheduleReader $schedules,
     ) {}
 
     public function resourceName(): string

@@ -7,7 +7,7 @@ namespace Core\BoundedContext\DailyReports\Infrastructure\Persistence\Eloquent;
 use App\Models\DailyReport as DailyReportModel;
 use App\Models\DailyReportEntry as DailyReportEntryModel;
 use Carbon\Carbon;
-use Core\BoundedContext\DailyReports\Application\Criteria\DailyReportsCriteria;
+use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsCriteria;
 use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsPage;
 use Core\BoundedContext\DailyReports\Domain\DailyReport;
 use Core\BoundedContext\DailyReports\Domain\DailyReportEntries;

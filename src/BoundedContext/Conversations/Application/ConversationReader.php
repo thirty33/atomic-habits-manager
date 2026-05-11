@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Core\BoundedContext\Conversations\Domain;
+namespace Core\BoundedContext\Conversations\Application;
 
 use Core\BoundedContext\Conversations\Application\ReadModels\ConversationSnapshot;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
@@ -11,8 +11,10 @@ use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
  * Read-side port for the chat page. Produces ReadModels (snapshots),
  * never aggregates — read-paths skip aggregate hydration on purpose.
  *
- * Separated from ConversationRepository (the write-side port) to avoid
- * the classic "hydrate the aggregate just to read one field" trap.
+ * Separated from ConversationRepository (the write-side port, in Domain)
+ * to avoid the classic "hydrate the aggregate just to read one field"
+ * trap. CQRS at the interface level: write and read sides have distinct
+ * contracts, both adapted by Infrastructure.
  */
 interface ConversationReader
 {

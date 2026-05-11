@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Core\BoundedContext\HabitSchedules\Infrastructure\Persistence\Eloquent;
 
 use App\Models\HabitSchedule as HabitScheduleModel;
+use Core\BoundedContext\HabitSchedules\Application\HabitScheduleReader;
 use Core\BoundedContext\HabitSchedules\Application\ReadModels\HabitScheduleSnapshot;
 use Core\BoundedContext\HabitSchedules\Domain\HabitSchedule;
 use Core\BoundedContext\HabitSchedules\Domain\HabitScheduleRepository;
@@ -12,7 +13,7 @@ use Core\BoundedContext\HabitSchedules\Domain\ValueObjects\Concretes\HabitSchedu
 use Core\Shared\Domain\Bus\DomainEventBus;
 use Illuminate\Support\Facades\DB;
 
-final readonly class EloquentHabitScheduleRepository implements HabitScheduleRepository
+final readonly class EloquentHabitScheduleRepository implements HabitScheduleReader, HabitScheduleRepository
 {
     public function __construct(
         private HabitScheduleModel $model,

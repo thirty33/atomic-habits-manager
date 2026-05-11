@@ -6,9 +6,9 @@ namespace Core\BoundedContext\Conversations\Infrastructure\Persistence\Eloquent;
 
 use App\Models\Conversation as ConversationModel;
 use App\Models\Message as MessageModel;
+use Core\BoundedContext\Conversations\Application\ConversationReader;
 use Core\BoundedContext\Conversations\Application\ReadModels\ConversationSnapshot;
 use Core\BoundedContext\Conversations\Application\ReadModels\MessageSnapshot;
-use Core\BoundedContext\Conversations\Domain\ConversationReader;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Support\Str;
 
