@@ -41,7 +41,7 @@ final readonly class ExtendOccurrencesForHabit
         }
 
         $window = new DateRange($from, $endDate);
-        $snapshots = $this->scheduleReader->findActiveByHabitIds([$habitId->value()]);
+        $snapshots = $this->scheduleReader->findAllActiveByHabitIds([$habitId->value()])[$habitId->value()] ?? [];
         $occurrences = [];
 
         foreach ($snapshots as $snap) {

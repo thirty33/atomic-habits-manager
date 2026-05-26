@@ -39,7 +39,7 @@ final readonly class RebuildOccurrencesForHabit
             $this->occurrenceRepository->deleteByIds($futureIds);
         }
 
-        $snapshots = $this->scheduleReader->findActiveByHabitIds([$habitId->value()]);
+        $snapshots = $this->scheduleReader->findAllActiveByHabitIds([$habitId->value()])[$habitId->value()] ?? [];
 
         $occurrences = $this->buildOccurrences($habitId, $snapshots, $todayDate);
 
@@ -51,7 +51,7 @@ final readonly class RebuildOccurrencesForHabit
     }
 
     /**
-     * @param  array<int, \Core\BoundedContext\HabitSchedules\Application\ReadModels\HabitScheduleSnapshot>  $snapshots
+     * @param  list<\Core\BoundedContext\HabitSchedules\Application\ReadModels\HabitScheduleSnapshot>  $snapshots
      * @return list<HabitOccurrence>
      */
     private function buildOccurrences(HabitId $habitId, array $snapshots, OccurrenceDate $today): array
