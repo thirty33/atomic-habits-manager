@@ -157,6 +157,46 @@ final readonly class EloquentHabitScheduleRepository implements HabitScheduleRea
     }
 
     /**
+     * @param  list<int>  $habitIds
+     * @return array<int, list<HabitScheduleSnapshot>>
+     */
+    public function findAllActiveByHabitIds(array $habitIds): array
+    {
+        if ($habitIds === []) {
+            return [];
+        }
+
+        $rows = $this->model->newQuery()
+            ->whereIn('habit_id', $habitIds)
+            ->where('is_active', true)
+            ->orderBy('habit_schedule_id')
+            ->get();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $attrs = $row->getAttributes();
+            $habitId = (int) $attrs['habit_id'];
+
+            $result[$habitId][] = new HabitScheduleSnapshot(
+                habitScheduleId: (int) $attrs['habit_schedule_id'],
+                habitId: $habitId,
+                recurrenceType: (string) $attrs['recurrence_type'],
+                startTime: $this->nullableString($attrs, 'start_time'),
+                endTime: $this->nullableString($attrs, 'end_time'),
+                daysOfWeek: $this->decodeDaysOfWeek($attrs['days_of_week'] ?? null),
+                intervalDays: isset($attrs['interval_days']) ? (int) $attrs['interval_days'] : null,
+                specificDate: $this->nullableString($attrs, 'specific_date'),
+                startsFrom: $this->nullableString($attrs, 'starts_from'),
+                endsAt: $this->nullableString($attrs, 'ends_at'),
+                isActive: (bool) $attrs['is_active'],
+            );
+        }
+
+        return $result;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function toAttributes(HabitSchedule $schedule): array

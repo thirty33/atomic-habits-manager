@@ -24,6 +24,18 @@ interface HabitScheduleReader
     public function findActiveByHabitIds(array $habitIds): array;
 
     /**
+     * Returns ALL ACTIVE schedules of the given habits, grouped by
+     * habit_id in lists. Unlike findActiveByHabitIds (which collapses to
+     * one snapshot per habit for the backoffice list), this preserves
+     * every active schedule — required to materialize occurrences for a
+     * habit that has more than one active schedule.
+     *
+     * @param  list<int>  $habitIds
+     * @return array<int, list<HabitScheduleSnapshot>>
+     */
+    public function findAllActiveByHabitIds(array $habitIds): array;
+
+    /**
      * Returns ALL schedules (active and inactive) of the given habits,
      * grouped by habit_id in lists. Preserves the parity with the legacy
      * eager-load `with('schedules')` of App\Repositories\HabitRepository.
