@@ -37,6 +37,10 @@ use App\Services\Frontend\UIElements\FormFields\SelectOptions\RecurrenceTypeOpti
 use App\Services\Frontend\UIElements\FormFields\TextareaField;
 use App\Services\Frontend\UIElements\FormFields\TextField;
 use App\Services\Frontend\UIElements\FormFields\TimeField;
+use App\Services\Frontend\UIElements\ModalNodes\FormNode;
+use App\Services\Frontend\UIElements\ModalNodes\ListNode;
+use App\Services\Frontend\UIElements\ModalNodes\NodeModal;
+use App\Services\Frontend\UIElements\ModalNodes\NodeStep;
 use App\Services\Frontend\UIElements\Modals\Modal;
 use App\Services\Frontend\UIElements\Modals\ModalStep;
 use App\Services\Frontend\UIElements\ResourceDetailLine;
@@ -156,8 +160,9 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
                     label: __('Acciones'),
                     key: 'actions',
                     actions: [
-                        new ActionColumn(label: 'Ver', class: ButtonGenerator::SHOW_CSS_CLASS, event: 'show'),
-                        new ActionColumn(label: 'Editar', class: ButtonGenerator::EDIT_CSS_CLASS, event: 'edit'),
+                        // new ActionColumn(label: 'Ver', class: ButtonGenerator::SHOW_CSS_CLASS, event: 'show'),
+                        // new ActionColumn(label: 'Editar', class: ButtonGenerator::EDIT_CSS_CLASS, event: 'edit'),
+                        new ActionColumn(label: 'Detalles', class: ButtonGenerator::EDIT_CSS_CLASS, event: 'editNode'),
                         new ActionColumn(label: 'Eliminar', class: ButtonGenerator::DELETE_CSS_CLASS, event: 'remove'),
                     ]
                 )
@@ -228,10 +233,15 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
         $habitIds = array_map(static fn (HabitResponse $h) => $h->habitId, $habits);
 
         $activeSchedules = $this->habitSchedules->findActiveByHabitIds($habitIds);
+        $schedules = $this->habitSchedules->findAllActiveByHabitIds($habitIds);
 
         return array_map(
             fn (HabitResponse $h) => (
-                new HabitResource($h, $activeSchedules[$h->habitId] ?? null)
+                new HabitResource(
+                    $h,
+                    $activeSchedules[$h->habitId] ?? null,
+                    $schedules[$h->habitId] ?? [],
+                )
             )->resolve(),
             $habits
         );
@@ -243,7 +253,7 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
             ->addButton(
                 new Button(
                     label: 'Crear habito',
-                    action: 'create',
+                    action: 'createNode',
                     icon: Heroicons::PLUS,
                     class: ButtonGenerator::CREATE_INLINE_CSS_CLASS,
                 )
@@ -420,6 +430,7 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
 
             return $this->modalGenerator
                 ->addModals(
+                    /* Temporarily disabled — only "Detalles" (editNode) and delete stay active for now.
                     new Modal(
                         type: ModalGenerator::MODAL_CREATE,
                         title: 'Crear habito',
@@ -487,19 +498,111 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
                             ),
                         ],
                     ),
+                    */
                     new Modal(
                         type: ModalGenerator::MODAL_DELETE,
                         title: 'Eliminar habito',
                         textSubmitButton: 'Eliminar',
                         questionMessage: 'Estas seguro de que quieres eliminar este habito?',
                         textCancelButton: 'Cancelar',
-                    )
+                    ),
+                    $this->createHabitNodeModal(),
+                    $this->editHabitNodeModal(),
                 )->getModals();
         } catch (Exception $exception) {
             \Log::error('Error al generar los modales de habitos: '.$exception->getMessage());
 
             return [];
         }
+    }
+
+    /**
+     * Create modal (node-based). Step 1 POSTs the habit (store route baked here, no id
+     * needed); the response carries the new habit's schedules_sync_action, which the front
+     * uses for step 2. Step 2 is optional (a habit may be created without schedules).
+     */
+    protected function createHabitNodeModal(): NodeModal
+    {
+        return new NodeModal(
+            type: 'createNode',
+            title: 'Crear hábito',
+            maxWidth: 'max-w-2xl xl:max-w-3xl 2xl:max-w-4xl',
+            steps: [
+                new NodeStep(
+                    step: 1,
+                    title: 'Información del hábito',
+                    action: new ActionForm(url: route(self::ROUTE_BACKOFFICE_HABITS_STORE)),
+                    content: new FormNode(
+                        fields: $this->formFields(),
+                    ),
+                    submitText: 'Guardar y continuar',
+                ),
+                new NodeStep(
+                    step: 2,
+                    title: 'Programación',
+                    subtitle: 'Un hábito puede repetirse en distintos momentos.',
+                    action: new ActionForm(url: '', method: ''),
+                    content: new ListNode(
+                        itemTemplate: new FormNode(
+                            fields: $this->scheduleFormFields(),
+                        ),
+                        addLabel: '+ Crear otra programación',
+                        minItems: 1,
+                        summaryFields: ['recurrence_type', 'start_time', 'end_time'],
+                        itemsKey: 'schedules',
+                        idKey: 'habit_schedule_id',
+                        syncActionKey: 'schedules_sync_action',
+                    ),
+                    submitText: 'Guardar programaciones',
+                    isOptional: true,
+                    skipText: 'Omitir por ahora',
+                ),
+            ],
+        );
+    }
+
+    /**
+     * Read-only node modal to verify the new component structure renders a habit
+     * and its schedules. Type 'editNode' so it lands in data.modals['editNode']
+     * and is mounted by modalComponents['editNode'] (AppModalSteps). The actions
+     * are placeholders — nothing is submitted in this phase.
+     */
+    protected function editHabitNodeModal(): NodeModal
+    {
+        return new NodeModal(
+            type: 'editNode',
+            title: 'Hábito (nodos)',
+            maxWidth: 'max-w-2xl xl:max-w-3xl 2xl:max-w-4xl',
+            steps: [
+                new NodeStep(
+                    step: 1,
+                    title: 'Información del hábito',
+                    action: new ActionForm(url: '', method: ''),
+                    content: new FormNode(
+                        fields: $this->formFields(),
+                    ),
+                    submitText: 'Guardar y continuar',
+                ),
+                new NodeStep(
+                    step: 2,
+                    title: 'Programación',
+                    subtitle: 'Un hábito puede repetirse en distintos momentos.',
+                    action: new ActionForm(url: '', method: ''),
+                    content: new ListNode(
+                        itemTemplate: new FormNode(
+                            fields: $this->scheduleFormFields(),
+                        ),
+                        addLabel: '+ Crear otra programación',
+                        minItems: 1,
+                        summaryFields: ['recurrence_type', 'start_time', 'end_time'],
+                        itemsKey: 'schedules',
+                        idKey: 'habit_schedule_id',
+                        syncActionKey: 'schedules_sync_action',
+                    ),
+                    submitText: 'Guardar programaciones',
+                ),
+            ],
+        );
     }
 
     public function filterFields(): array

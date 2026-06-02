@@ -11,7 +11,7 @@ use Core\BoundedContext\Habits\Domain\Criteria\HabitsSort;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\DesireType;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitNature;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 final readonly class ListHabits
 {

@@ -2,6 +2,6 @@
 
 namespace Core\BoundedContext\Habits\Domain\ValueObjects\Concretes;
 
-use Core\BoundedContext\Habits\Domain\ValueObjects\Primitives\IntegerId;
+use Core\Shared\Domain\ValueObjects\Primitives\IntegerId;
 
 final class HabitId extends IntegerId {}

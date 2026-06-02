@@ -38,9 +38,13 @@ final class HabitResource extends JsonResource
 {
     private FormActionGenerator $formActionGenerator;
 
+    /**
+     * @param  list<HabitScheduleSnapshot>  $schedules  Active schedules of the habit.
+     */
     public function __construct(
         HabitResponse $resource,
         private readonly ?HabitScheduleSnapshot $activeSchedule = null,
+        private readonly array $schedules = [],
     ) {
         parent::__construct($resource);
         $this->formActionGenerator = new FormActionGenerator;
@@ -87,9 +91,19 @@ final class HabitResource extends JsonResource
                     method: FormActionGenerator::HTTP_METHOD_DELETE,
                 )
             )->getActionForm(),
+            'schedules_sync_action' => $this->formActionGenerator->setActionForm(
+                new ActionForm(
+                    url: route('backoffice.habits.schedules.sync', $r->habitId),
+                    method: FormActionGenerator::HTTP_METHOD_PUT,
+                )
+            )->getActionForm(),
             'active_schedule' => $this->activeSchedule !== null
                 ? (new ActiveScheduleResource($this->activeSchedule))->resolve()
                 : null,
+            'schedules' => array_map(
+                fn (HabitScheduleSnapshot $schedule) => (new ActiveScheduleResource($schedule))->resolve(),
+                $this->schedules,
+            ),
         ];
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Core\BoundedContext\DailyReports\Domain\ValueObjects;
 
-use Core\BoundedContext\Habits\Domain\ValueObjects\Primitives\StringEnum;
+use Core\Shared\Domain\ValueObjects\Primitives\StringEnum;
 
 final class EntryStatus extends StringEnum
 {

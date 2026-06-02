@@ -76,7 +76,9 @@ class ProfileTest extends TestCase
             ->assertRedirect('/');
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+        // El modelo User usa SoftDeletes — la "eliminación de cuenta" deja la fila con deleted_at,
+        // no la borra físicamente. fresh() bypassea scopes, así que devuelve el modelo trashed.
+        $this->assertTrue($user->fresh()->trashed());
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void

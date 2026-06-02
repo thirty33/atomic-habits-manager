@@ -6,7 +6,7 @@ namespace Core\BoundedContext\DailyReports\Domain\Criteria;
 
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\Mood;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Parameter object (Criteria pattern, PoEAA cap. 13) for paginated daily

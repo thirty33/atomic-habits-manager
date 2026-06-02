@@ -11,7 +11,7 @@ use Core\BoundedContext\Conversations\Application\Actions\StartConversation;
 use Core\BoundedContext\Conversations\Application\DTOs\DeleteConversationData;
 use Core\BoundedContext\Conversations\Domain\Events\ConversationWasDeleted;
 use Core\BoundedContext\Conversations\Domain\Exceptions\ConversationNotFound;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Core\Shared\Domain\Bus\DomainEventBus;
 use Core\Shared\Infrastructure\Events\Bus\SpyDomainEventBus;
 use Illuminate\Foundation\Testing\RefreshDatabase;

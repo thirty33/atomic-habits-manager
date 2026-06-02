@@ -6,7 +6,7 @@ namespace Core\BoundedContext\Habits\Application\Actions;
 
 use Core\BoundedContext\Habits\Application\Responses\HabitsResponse;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Versión no paginada — para CLI, jobs o exports. Si la lista crece a

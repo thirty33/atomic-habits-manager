@@ -9,7 +9,7 @@ use App\Models\Message as MessageModel;
 use Core\BoundedContext\Conversations\Application\ConversationReader;
 use Core\BoundedContext\Conversations\Application\ReadModels\ConversationSnapshot;
 use Core\BoundedContext\Conversations\Application\ReadModels\MessageSnapshot;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Support\Str;
 
 final readonly class EloquentConversationReader implements ConversationReader

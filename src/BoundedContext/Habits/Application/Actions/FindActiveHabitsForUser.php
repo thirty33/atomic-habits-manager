@@ -6,7 +6,7 @@ namespace Core\BoundedContext\Habits\Application\Actions;
 
 use Core\BoundedContext\Habits\Application\ReadModels\HabitSnapshot;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Use Case: lista los habits activos del usuario y devuelve snapshots.

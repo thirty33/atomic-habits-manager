@@ -6,7 +6,7 @@ namespace Core\BoundedContext\Conversations\Application\ViewModels;
 
 use Core\BoundedContext\Conversations\Application\ConversationReader;
 use Core\BoundedContext\Conversations\Application\ReadModels\ConversationSnapshot;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * View model for the chat page (GET /backoffice/atomic-ia/json).

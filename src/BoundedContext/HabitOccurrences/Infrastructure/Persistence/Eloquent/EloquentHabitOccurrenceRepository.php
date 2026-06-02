@@ -13,8 +13,8 @@ use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\HabitOccurrenceId;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceTime;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Core\BoundedContext\HabitSchedules\Domain\ValueObjects\Concretes\HabitScheduleId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use DateTimeImmutable;
 use Illuminate\Support\Carbon;
 

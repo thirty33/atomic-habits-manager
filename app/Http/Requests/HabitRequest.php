@@ -17,12 +17,13 @@ class HabitRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Solo validación sintáctica del nombre. La unicidad por usuario es
+            // una regla de dominio: la verifica el use case (CreateHabit/UpdateHabit)
+            // vía el repositorio y, si falla, lanza HabitNameAlreadyTaken (mapeada a
+            // 422 en bootstrap/app.php). Así no se cuenta con filas soft-deleted.
             'name' => [
                 'required',
                 'max:255',
-                Rule::unique('habits')
-                    ->where('user_id', auth()->id())
-                    ->ignore($this->route('id'), 'habit_id'),
             ],
             'description' => ['nullable', 'string'],
             'habit_nature' => ['required', Rule::in(array_column(HabitNature::cases(), 'value'))],
@@ -55,7 +56,6 @@ class HabitRequest extends FormRequest
         return [
             'name.required' => __('El campo :attribute es obligatorio.'),
             'name.max' => __('El campo :attribute no debe exceder los :max caracteres.'),
-            'name.unique' => __('El campo :attribute ya esta en uso.'),
             'habit_nature.required' => __('El campo :attribute es obligatorio.'),
             'habit_nature.in' => __('El campo :attribute debe ser "build" o "break".'),
             'desire_type.required' => __('El campo :attribute es obligatorio.'),

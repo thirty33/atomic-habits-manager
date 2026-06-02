@@ -8,7 +8,7 @@ use App\Models\Conversation as ConversationModel;
 use Core\BoundedContext\Conversations\Domain\Conversation;
 use Core\BoundedContext\Conversations\Domain\ConversationRepository;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Core\Shared\Domain\Bus\DomainEventBus;
 use Illuminate\Support\Facades\DB;
 

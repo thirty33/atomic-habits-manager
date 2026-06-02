@@ -79,10 +79,10 @@ const isSelected = (dayValue) => {
                 :key="day.value"
                 type="button"
                 :class="[
-                    'px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                    'min-w-[42px] px-3 py-2 text-[13px] font-medium rounded-lg transition-colors',
                     isSelected(day.value)
-                        ? 'bg-btn-primary text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                        ? 'bg-brand-700 text-paper'
+                        : 'bg-card text-ink-500 ring-1 ring-inset ring-line-200 hover:bg-paper hover:text-ink-900'
                 ]"
                 @click="toggleDay(day.value)"
             >

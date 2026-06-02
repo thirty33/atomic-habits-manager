@@ -8,7 +8,7 @@ use Core\BoundedContext\DailyReports\Application\Responses\DailyReportResponse;
 use Core\BoundedContext\DailyReports\Domain\DailyReport;
 use Core\BoundedContext\DailyReports\Domain\DailyReportRepository;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 final readonly class FindOrCreateDailyReportForDate
 {

@@ -16,7 +16,7 @@ use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitNature;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HexColor;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\ImplementationIntention;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\Reframe;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Core\Shared\Domain\AggregateRoot;
 use DateTimeImmutable;
 

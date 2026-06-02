@@ -30,7 +30,7 @@ use Core\BoundedContext\DailyReports\Application\Actions\GetDailyReportsForUser;
 use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsCriteria;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\Mood;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Exception;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 

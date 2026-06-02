@@ -6,6 +6,7 @@ namespace Core\BoundedContext\Habits\Application\Actions;
 
 use Core\BoundedContext\Habits\Application\DTOs\CreateHabitData;
 use Core\BoundedContext\Habits\Application\Responses\HabitResponse;
+use Core\BoundedContext\Habits\Domain\Exceptions\HabitNameAlreadyTaken;
 use Core\BoundedContext\Habits\Domain\Habit;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\DesireType;
@@ -17,7 +18,7 @@ use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitNature;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HexColor;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\ImplementationIntention;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\Reframe;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 final readonly class CreateHabit
 {
@@ -25,9 +26,16 @@ final readonly class CreateHabit
 
     public function __invoke(CreateHabitData $data): HabitResponse
     {
+        $userId = UserId::from($data->userId);
+        $name = HabitName::from($data->name);
+
+        if ($this->repository->nameExistsForUser($name, $userId)) {
+            throw HabitNameAlreadyTaken::forName($name);
+        }
+
         $habit = Habit::create(
-            userId: UserId::from($data->userId),
-            name: HabitName::from($data->name),
+            userId: $userId,
+            name: $name,
             habitNature: HabitNature::from($data->habitNature),
             desireType: DesireType::from($data->desireType),
             description: $data->description !== null ? HabitDescription::from($data->description) : null,

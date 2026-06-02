@@ -10,7 +10,7 @@ use Core\BoundedContext\Conversations\Application\Actions\StartConversation;
 use Core\BoundedContext\Conversations\Application\Ai\AiResponseProvider;
 use Core\BoundedContext\Conversations\Application\ConversationReader;
 use Core\BoundedContext\Conversations\Application\DTOs\PostUserMessageData;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\InMemoryAiResponseProvider;
 use Tests\TestCase;

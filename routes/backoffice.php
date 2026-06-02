@@ -12,6 +12,10 @@ Route::jsonGroup('habit-schedules', \App\Http\Controllers\Backoffice\HabitSchedu
     'store', 'update',
 ]);
 
+// Bulk sync of a habit's schedules (create/update/delete in one transaction).
+Route::put('habits/{id}/schedules', [\App\Http\Controllers\Backoffice\HabitScheduleController::class, 'sync'])
+    ->name('habits.schedules.sync');
+
 Route::jsonGroup('calendar', \App\Http\Controllers\Backoffice\CalendarController::class, [
     'index', 'json',
 ]);

@@ -2,7 +2,7 @@
 
 namespace Core\BoundedContext\Habits\Domain\ValueObjects\Concretes;
 
-use Core\BoundedContext\Habits\Domain\ValueObjects\Primitives\StringEnum;
+use Core\Shared\Domain\ValueObjects\Primitives\StringEnum;
 
 final class HabitNature extends StringEnum
 {

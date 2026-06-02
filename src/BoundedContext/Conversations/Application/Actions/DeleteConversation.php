@@ -8,7 +8,7 @@ use Core\BoundedContext\Conversations\Application\DTOs\DeleteConversationData;
 use Core\BoundedContext\Conversations\Domain\ConversationRepository;
 use Core\BoundedContext\Conversations\Domain\Exceptions\ConversationNotFound;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 final readonly class DeleteConversation
 {

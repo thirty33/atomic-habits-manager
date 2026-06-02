@@ -2,7 +2,7 @@
 
 namespace Core\BoundedContext\Habits\Domain\ValueObjects\Concretes;
 
-use Core\BoundedContext\Habits\Domain\ValueObjects\Primitives\BoundedText;
+use Core\Shared\Domain\ValueObjects\Primitives\BoundedText;
 
 final class Reframe extends BoundedText
 {

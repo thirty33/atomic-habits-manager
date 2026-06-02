@@ -8,7 +8,7 @@ use Core\BoundedContext\Habits\Application\Responses\HabitResponse;
 use Core\BoundedContext\Habits\Domain\Exceptions\HabitNotFound;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 final readonly class FindHabit
 {

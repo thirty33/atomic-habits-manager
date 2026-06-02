@@ -2,6 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+    /* === Redesign 2026 — reusable visual primitives === */
+
+    .eyebrow {
+        @apply inline-flex items-center gap-2 pl-[9px] pr-[11px] py-[5px] rounded-full bg-brand-100 text-brand-800 text-xs;
+    }
+    .eyebrow .dot {
+        @apply w-1.5 h-1.5 rounded-full bg-brand-700;
+    }
+
+    .divider-dot {
+        background-image: radial-gradient(circle, rgb(var(--color-line-300)) 1px, transparent 1px);
+        background-size: 6px 6px;
+        background-repeat: repeat-x;
+        background-position: center;
+        height: 6px;
+    }
+
+    .logo-mark {
+        @apply inline-grid place-items-center w-7 h-7 bg-brand-700 text-paper rounded-md font-display text-[18px] leading-none pb-[2px];
+    }
+    .logo-mark.lg {
+        @apply w-9 h-9 text-[22px] rounded-[7px];
+    }
+
+    .display {
+        font-family: 'Instrument Serif', Georgia, serif;
+        font-weight: 400;
+        line-height: 0.95;
+        letter-spacing: -0.025em;
+    }
+
+    a.uline {
+        background-image: linear-gradient(currentColor, currentColor);
+        background-position: 0 100%;
+        background-repeat: no-repeat;
+        background-size: 100% 1px;
+        padding-bottom: 1px;
+    }
+}
+
 @layer base {
     :root {
         /* Sidebar */
@@ -31,5 +72,39 @@
         --color-btn-danger-hover: 220 38 38;     /* red-600 */
         --color-btn-success: 34 197 94;          /* green-500 */
         --color-btn-success-hover: 22 163 74;    /* green-600 */
+
+        /* === Redesign 2026 — coexists with the legacy palette above === */
+        /* Brand — forest green */
+        --color-brand-50:  241 245 242;
+        --color-brand-100: 230 239 233;
+        --color-brand-200: 201 219 209;
+        --color-brand-300: 155 188 174;
+        --color-brand-500:  63 122 102;
+        --color-brand-600:  45 101  83;
+        --color-brand-700:  31  82  71;          /* primary */
+        --color-brand-800:  23  61  53;          /* primary hover */
+        --color-brand-900:  15  42  37;
+
+        /* Surfaces — warm neutrals */
+        --color-paper:      250 248 243;         /* warm cream — landing/auth */
+        --color-page-cream: 247 246 241;         /* backoffice page bg */
+        --color-card:       255 255 255;
+
+        /* Ink — type colors */
+        --color-ink-400:    138 135 125;         /* eyebrows, metadata */
+        --color-ink-500:    107 105  98;         /* secondary text */
+        --color-ink-700:     61  59  53;         /* body text */
+        --color-ink-900:     26  26  23;         /* headings */
+
+        /* Lines — borders and separators */
+        --color-line-100:   239 236 228;
+        --color-line-200:   227 223 210;
+        --color-line-300:   205 200 184;
+
+        /* Semantics (recalibrated, no neon) */
+        --color-warning:    184 138  47;
+        --color-success-2:   45 122 100;
+        --color-danger-2:   180  69  47;
+        --color-info-2:      74 107 138;
     }
 }

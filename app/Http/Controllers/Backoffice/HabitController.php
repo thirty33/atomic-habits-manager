@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Backoffice;
 use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\HabitRequest;
+use App\Http\Resources\HabitResource;
 use App\Services\ToastNotificationService;
 use App\ViewModels\Backoffice\Habits\GetHabitsViewModel;
 use Core\BoundedContext\Habits\Application\Actions\CreateHabit;
@@ -47,7 +48,10 @@ class HabitController extends Controller
             title: __('Habito creado'),
             message: __('El habito :name ha sido creado', ['name' => $response->name]),
             timeout: 5000,
-            extra: ['habit_id' => $response->habitId],
+            extra: [
+                'habit_id' => $response->habitId,
+                'habit' => (new HabitResource($response))->resolve(),
+            ],
         );
     }
 

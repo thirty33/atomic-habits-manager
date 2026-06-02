@@ -29,7 +29,7 @@ use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
 use Core\BoundedContext\HabitOccurrences\Application\Actions\GetOccurrencesForDate;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
 use Core\BoundedContext\Habits\Application\Actions\FindActiveHabitsForUser;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
