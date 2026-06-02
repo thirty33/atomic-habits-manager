@@ -7,11 +7,14 @@ namespace App\Http\Controllers\Backoffice;
 use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\HabitScheduleRequest;
+use App\Http\Requests\SyncHabitSchedulesRequest;
 use App\Http\Requests\UpdateHabitScheduleRequest;
 use App\Services\ToastNotificationService;
 use Core\BoundedContext\HabitSchedules\Application\Actions\CreateHabitSchedule;
+use Core\BoundedContext\HabitSchedules\Application\Actions\SyncHabitSchedules;
 use Core\BoundedContext\HabitSchedules\Application\Actions\UpdateHabitSchedule;
 use Core\BoundedContext\HabitSchedules\Application\DTOs\CreateHabitScheduleData;
+use Core\BoundedContext\HabitSchedules\Application\DTOs\SyncHabitSchedulesData;
 use Core\BoundedContext\HabitSchedules\Application\DTOs\UpdateHabitScheduleData;
 use Illuminate\Http\JsonResponse;
 
@@ -42,6 +45,18 @@ class HabitScheduleController extends Controller
             type: NotificationType::SUCCESS,
             title: __('Programación actualizada'),
             message: __('La programación ha sido actualizada correctamente'),
+            timeout: 5000,
+        );
+    }
+
+    public function sync(SyncHabitSchedulesRequest $request, int $id, SyncHabitSchedules $useCase): JsonResponse
+    {
+        $useCase(SyncHabitSchedulesData::fromArray($id, $request->validated()));
+
+        return $this->toastNotification->notify(
+            type: NotificationType::SUCCESS,
+            title: __('Programaciones actualizadas'),
+            message: __('Las programaciones del hábito se guardaron correctamente'),
             timeout: 5000,
         );
     }

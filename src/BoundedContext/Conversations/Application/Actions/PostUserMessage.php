@@ -12,7 +12,7 @@ use Core\BoundedContext\Conversations\Domain\Message;
 use Core\BoundedContext\Conversations\Domain\MessageRepository;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\MessageBody;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use DateTimeImmutable;
 
 final readonly class PostUserMessage

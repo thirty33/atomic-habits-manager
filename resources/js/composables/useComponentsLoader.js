@@ -24,6 +24,13 @@ export default function useComponentsLoader()
         });
     }
 
+    const nodesLoader = component => {
+        return defineAsyncComponent({
+            loader: () => import('@/components/common/resources/nodes/ui')
+                .then(module => module[component])
+        });
+    }
+
     const loadComponents = (items, loader) => {
         return items.map((item) => {
             return {
@@ -54,6 +61,7 @@ export default function useComponentsLoader()
         columnsLoader,
         formFieldsLoader,
         statsLoader,
+        nodesLoader,
         components,
         findComponentByName,
     }

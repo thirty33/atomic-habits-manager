@@ -10,7 +10,7 @@ use Core\BoundedContext\Conversations\Domain\Events\ConversationWasStarted;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationStatus;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationTitle;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Core\Shared\Domain\AggregateRoot;
 use DateTimeImmutable;
 use LogicException;

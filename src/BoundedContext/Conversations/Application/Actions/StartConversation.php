@@ -7,7 +7,7 @@ namespace Core\BoundedContext\Conversations\Application\Actions;
 use Core\BoundedContext\Conversations\Application\Responses\ConversationResponse;
 use Core\BoundedContext\Conversations\Domain\Conversation;
 use Core\BoundedContext\Conversations\Domain\ConversationRepository;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 final readonly class StartConversation
 {

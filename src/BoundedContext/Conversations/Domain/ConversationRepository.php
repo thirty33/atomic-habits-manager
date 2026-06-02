@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Core\BoundedContext\Conversations\Domain;
 
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\ConversationId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Persistence port for the Conversation aggregate.

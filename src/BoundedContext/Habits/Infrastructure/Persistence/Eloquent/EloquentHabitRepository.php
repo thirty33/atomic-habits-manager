@@ -11,7 +11,8 @@ use Core\BoundedContext\Habits\Domain\Habit;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
 use Core\BoundedContext\Habits\Domain\Habits;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitName;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Core\Shared\Domain\Bus\DomainEventBus;
 use Illuminate\Support\Facades\DB;
 
@@ -59,6 +60,19 @@ final readonly class EloquentHabitRepository implements HabitRepository
             ->first();
 
         return $row !== null ? $this->toDomain($row) : null;
+    }
+
+    public function nameExistsForUser(HabitName $name, UserId $userId, ?HabitId $excluding = null): bool
+    {
+        $query = $this->model->newQuery()
+            ->where('user_id', $userId->value())
+            ->where('name', $name->value());
+
+        if ($excluding !== null) {
+            $query->where('habit_id', '!=', $excluding->value());
+        }
+
+        return $query->exists();
     }
 
     public function delete(Habit $habit): void

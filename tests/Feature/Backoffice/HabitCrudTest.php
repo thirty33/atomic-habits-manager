@@ -156,6 +156,39 @@ class HabitCrudTest extends TestCase
         ]);
     }
 
+    public function test_store_habit_allows_name_of_soft_deleted_habit(): void
+    {
+        $habit = Habit::factory()->create(['user_id' => $this->user->user_id, 'name' => 'Meditar']);
+        $habit->delete(); // soft-delete: la fila permanece con deleted_at
+
+        $response = $this->actingAs($this->user)->post(route('backoffice.habits.store'), [
+            'name' => 'Meditar',
+            'habit_nature' => 'build',
+            'desire_type' => 'want',
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('habits', [
+            'user_id' => $this->user->user_id,
+            'name' => 'Meditar',
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_store_habit_duplicate_name_returns_422_field_error_as_json(): void
+    {
+        Habit::factory()->create(['user_id' => $this->user->user_id, 'name' => 'Meditar']);
+
+        $response = $this->actingAs($this->user)->postJson(route('backoffice.habits.store'), [
+            'name' => 'Meditar',
+            'habit_nature' => 'build',
+            'desire_type' => 'want',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('name');
+    }
+
     public function test_store_habit_validates_invalid_habit_nature(): void
     {
         $response = $this->actingAs($this->user)->post(route('backoffice.habits.store'), [

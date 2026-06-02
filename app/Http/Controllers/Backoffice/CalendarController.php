@@ -9,7 +9,7 @@ use App\Http\Resources\HabitOccurrenceResource;
 use App\ViewModels\Backoffice\Calendar\GetCalendarViewModel;
 use Core\BoundedContext\HabitOccurrences\Application\Actions\GetOccurrencesInRange;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;

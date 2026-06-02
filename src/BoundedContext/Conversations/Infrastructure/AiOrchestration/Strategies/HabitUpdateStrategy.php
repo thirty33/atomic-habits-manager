@@ -10,13 +10,13 @@ use Core\BoundedContext\Habits\Application\DTOs\UpdateHabitData;
 use Core\BoundedContext\Habits\Domain\Exceptions\HabitNotFound;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Core\BoundedContext\HabitSchedules\Application\Actions\CreateHabitSchedule;
 use Core\BoundedContext\HabitSchedules\Application\Actions\UpdateHabitSchedule;
 use Core\BoundedContext\HabitSchedules\Application\DTOs\CreateHabitScheduleData;
 use Core\BoundedContext\HabitSchedules\Application\DTOs\UpdateHabitScheduleData;
 use Core\BoundedContext\HabitSchedules\Domain\HabitScheduleRepository;
 use Core\BoundedContext\HabitSchedules\Domain\ValueObjects\Concretes\HabitScheduleId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 final class HabitUpdateStrategy implements UpdatableResource

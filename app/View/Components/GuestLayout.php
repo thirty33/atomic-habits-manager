@@ -8,8 +8,10 @@ use Illuminate\View\View;
 class GuestLayout extends Component
 {
     /**
-     * Get the view / contents that represents the component.
+     * @param  string|null  $eyebrow  Small mono-uppercase label above the title.
      */
+    public function __construct(public ?string $eyebrow = null) {}
+
     public function render(): View
     {
         return view('layouts.guest');

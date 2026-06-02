@@ -9,9 +9,9 @@ class CheckboxField implements Contracts\Field
 
     const COMPONENT = 'AppCheckboxField';
 
-    const CSS_FIELD_CLASS = 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600';
+    const CSS_FIELD_CLASS = 'w-4 h-4 rounded border-line-300 text-brand-700 focus:ring-brand-700/30 focus:ring-offset-0';
 
-    const CSS_LABEL_CLASS = 'ms-2 text-sm font-medium text-gray-900 dark:text-gray-300';
+    const CSS_LABEL_CLASS = 'ms-2 text-[13.5px] font-medium text-ink-700';
 
     public function __construct(
         protected string $name,

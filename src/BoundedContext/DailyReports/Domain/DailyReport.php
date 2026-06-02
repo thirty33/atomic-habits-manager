@@ -8,7 +8,7 @@ use Core\BoundedContext\DailyReports\Domain\ValueObjects\DailyReportId;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\Mood;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportNotes;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use DateTimeImmutable;
 use DomainException;
 

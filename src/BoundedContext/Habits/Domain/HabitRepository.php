@@ -7,7 +7,8 @@ namespace Core\BoundedContext\Habits\Domain;
 use Core\BoundedContext\Habits\Domain\Criteria\HabitsCriteria;
 use Core\BoundedContext\Habits\Domain\Criteria\HabitsPage;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitName;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Puerto de persistencia para el agregado Habit.
@@ -42,6 +43,18 @@ interface HabitRepository
      * otro caso (no existe, soft-deleted, o pertenece a otro usuario).
      */
     public function findForUser(HabitId $id, UserId $userId): ?Habit;
+
+    /**
+     * ¿El usuario ya tiene un Habit vigente (no soft-deleted) con ese nombre?
+     *
+     * La unicidad del nombre por usuario es una regla de dominio a nivel de
+     * conjunto (no un invariante del propio agregado), por eso se consulta aquí
+     * antes de crear/actualizar. Los registros soft-deleted NO cuentan, así que
+     * un nombre liberado por borrado puede reutilizarse.
+     *
+     * @param  HabitId|null  $excluding  Id a excluir (caso update: el propio Habit).
+     */
+    public function nameExistsForUser(HabitName $name, UserId $userId, ?HabitId $excluding = null): bool;
 
     /**
      * Borra (soft-delete) el Habit. Asume que el habit ya tiene id asignado.

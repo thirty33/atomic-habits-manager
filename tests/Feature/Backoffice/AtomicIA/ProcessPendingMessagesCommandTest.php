@@ -13,7 +13,7 @@ use Core\BoundedContext\Conversations\Application\Ai\AiResponseProvider;
 use Core\BoundedContext\Conversations\Application\DTOs\PostUserMessageData;
 use Core\BoundedContext\Conversations\Application\DTOs\ProcessUserMessageWithAiData;
 use Core\BoundedContext\Conversations\Domain\ConversationRepository;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Core\Shared\Domain\Bus\DomainEventBus;
 use Core\Shared\Infrastructure\Events\Bus\SpyDomainEventBus;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -25,7 +25,7 @@ use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportNotes;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\HabitOccurrenceId;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Support\Facades\DB;
 
 final readonly class EloquentDailyReportRepository implements DailyReportRepository

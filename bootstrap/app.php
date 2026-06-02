@@ -88,4 +88,20 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return response($e->getMessage(), 404);
         });
+        // Cualquier excepción de dominio que implemente ProvidesValidationErrors
+        // se mapea a 422 por campo. Añadir nuevas validaciones de dominio NO
+        // requiere tocar este archivo: basta con implementar el contrato.
+        $exceptions->render(function (
+            \Core\Shared\Domain\ProvidesValidationErrors $e,
+            \Illuminate\Http\Request $request,
+        ) {
+            $errors = $e->validationErrors();
+            $message = collect($errors)->flatten()->first() ?? $e->getMessage();
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message, 'errors' => $errors], 422);
+            }
+
+            return back()->withErrors($errors)->withInput();
+        });
     })->create();

@@ -1,0 +1,28 @@
+{
+    // Scoped to the node-modal feature module only. Does NOT type-check the
+    // existing JS codebase: allowJs lets TS resolve imports of JS composables as
+    // `any`, checkJs:false keeps their bodies unchecked, and `include` limits the
+    // program to the feature's layered folders (domain / application / adapters / ui).
+    // The build never uses this file — Vite/esbuild strips types; this is for editor
+    // intellisense and an optional vue-tsc typecheck.
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "noEmit": true,
+        "isolatedModules": true,
+        "allowJs": true,
+        "checkJs": false,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["resources/js/*"]
+        }
+    },
+    "include": [
+        "resources/js/components/common/resources/nodes/**/*.ts",
+        "resources/js/components/common/resources/nodes/**/*.vue"
+    ]
+}

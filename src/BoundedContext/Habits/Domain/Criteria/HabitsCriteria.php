@@ -6,7 +6,7 @@ namespace Core\BoundedContext\Habits\Domain\Criteria;
 
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\DesireType;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitNature;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Criterio para listar Habits. Es un Value Object inmutable: cada `with*`

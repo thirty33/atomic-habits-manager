@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Core\BoundedContext\Conversations\Application;
 
 use Core\BoundedContext\Conversations\Application\ReadModels\ConversationSnapshot;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Read-side port for the chat page. Produces ReadModels (snapshots),

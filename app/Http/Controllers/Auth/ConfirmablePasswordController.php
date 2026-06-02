@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Core\BoundedContext\Identity\Application\Actions\ConfirmUserPassword;
+use Core\BoundedContext\Identity\Application\DTOs\ConfirmUserPasswordData;
+use Core\BoundedContext\Identity\Domain\Exceptions\InvalidCredentials;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -22,18 +24,18 @@ class ConfirmablePasswordController extends Controller
     /**
      * Confirm the user's password.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, ConfirmUserPassword $confirm): RedirectResponse
     {
-        if (! Auth::guard('web')->validate([
-            'email' => $request->user()->email,
-            'password' => $request->password,
-        ])) {
-            throw ValidationException::withMessages([
-                'password' => __('auth.password'),
-            ]);
-        }
+        $request->validate(['password' => ['required', 'string']]);
 
-        $request->session()->put('auth.password_confirmed_at', time());
+        try {
+            $confirm(new ConfirmUserPasswordData(
+                userId: (int) $request->user()->getKey(),
+                password: $request->string('password')->value(),
+            ));
+        } catch (InvalidCredentials $e) {
+            throw ValidationException::withMessages(['password' => __('auth.password')]);
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

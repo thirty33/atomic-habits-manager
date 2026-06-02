@@ -41,7 +41,12 @@ Thumbs.db
 /.claude/skills/aws-infrastructure/
 /.claude/skills/deployment-pipeline/
 /.claude/skills/server-management/
+/.claude/skills/db-sync-prod/
+/.claude/skills/ssh-ip-update/
 /.ai/
+
+# Database dumps (prod sync)
+/atomic_habits_prod_dump_*.sql
 
 # Backups locales
 *.old

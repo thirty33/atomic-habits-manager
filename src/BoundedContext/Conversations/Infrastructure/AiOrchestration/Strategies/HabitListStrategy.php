@@ -7,10 +7,10 @@ namespace Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strat
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Contracts\ListableResource;
 use Core\BoundedContext\Habits\Domain\Habit;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Core\BoundedContext\HabitSchedules\Application\HabitScheduleReader;
 use Core\BoundedContext\HabitSchedules\Application\ReadModels\HabitScheduleSnapshot;
 use Core\BoundedContext\HabitSchedules\Domain\ValueObjects\Concretes\RecurrenceType;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 final class HabitListStrategy implements ListableResource
 {

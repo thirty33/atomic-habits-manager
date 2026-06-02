@@ -8,7 +8,7 @@ use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsCriteria;
 use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsPage;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\DailyReportId;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Persistence port for the DailyReport aggregate.

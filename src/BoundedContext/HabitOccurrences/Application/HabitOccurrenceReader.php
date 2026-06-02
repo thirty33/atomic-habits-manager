@@ -6,7 +6,7 @@ namespace Core\BoundedContext\HabitOccurrences\Application;
 
 use Core\BoundedContext\HabitOccurrences\Application\ReadModels\HabitOccurrenceSnapshot;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 /**
  * Read-side port for HabitOccurrence projections. Returns ReadModels

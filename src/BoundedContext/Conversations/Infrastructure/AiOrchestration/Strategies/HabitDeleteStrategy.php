@@ -9,10 +9,10 @@ use Core\BoundedContext\Habits\Application\Actions\DeleteHabit;
 use Core\BoundedContext\Habits\Domain\Exceptions\HabitNotFound;
 use Core\BoundedContext\Habits\Domain\HabitRepository;
 use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
 use Core\BoundedContext\HabitSchedules\Application\Actions\DeleteHabitSchedule;
 use Core\BoundedContext\HabitSchedules\Domain\HabitScheduleRepository;
 use Core\BoundedContext\HabitSchedules\Domain\ValueObjects\Concretes\HabitScheduleId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 
 final class HabitDeleteStrategy implements DeletableResource
 {

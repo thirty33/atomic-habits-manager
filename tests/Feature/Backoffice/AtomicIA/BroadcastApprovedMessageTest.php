@@ -15,7 +15,7 @@ use Core\BoundedContext\Conversations\Application\Broadcasting\ConversationBroad
 use Core\BoundedContext\Conversations\Application\DTOs\PostUserMessageData;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\MessageRole;
 use Core\BoundedContext\Conversations\Domain\ValueObjects\Concretes\MessageStatus;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Core\Shared\Domain\Bus\DomainEventBus;
 use Core\Shared\Infrastructure\Events\Bus\InMemorySyncDomainEventBus;
 use Illuminate\Foundation\Testing\RefreshDatabase;

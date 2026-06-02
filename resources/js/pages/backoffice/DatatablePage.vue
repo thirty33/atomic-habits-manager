@@ -20,6 +20,7 @@ import {
     AppCreateResource, AppEditResource, AppExportResource,
     AppRemoveResource, AppShowResource,
 } from "@/components/common/resources";
+import AppModalSteps from "@/components/common/resources/nodes/ui/AppModalSteps.vue";
 import { AppButtonWithHeroIcon } from "@/components/ui/buttons";
 
 defineProps({
@@ -31,6 +32,24 @@ defineProps({
 
 const { dataProviderKey, updateDataProvider } = useDataProvider();
 const { modalAction, modelSelected, openModal, closeModal } = useModal();
+
+// Marca si el modal abierto cambió datos en el servidor. Permite refrescar la
+// tabla al cerrar por X/fondo (los flujos multi-paso crean en un paso intermedio
+// y pueden cerrarse sin llegar a emitir "processed").
+const modalMutated = ref(false);
+
+const onOpenModal = (action, model = null) => {
+    modalMutated.value = false;
+    openModal(action, model);
+};
+
+const onModalClose = () => {
+    closeModal(() => {
+        if (modalMutated.value) {
+            updateDataProvider();
+        }
+    });
+};
 
 const columns = ref([]);
 
@@ -48,6 +67,8 @@ const modalComponents = {
     remove: AppRemoveResource,
     export: AppExportResource,
     show: AppShowResource,
+    editNode: AppModalSteps,
+    createNode: AppModalSteps,
 };
 </script>
 
@@ -74,7 +95,7 @@ const modalComponents = {
                             v-for="button in data?.table_buttons"
                             :key="`top-action-button-${button.id}`"
                             :button="button"
-                            @clicked="openModal(button.action)"
+                            @clicked="onOpenModal(button.action)"
                         />
                     </template>
 
@@ -92,7 +113,7 @@ const modalComponents = {
                             :table-data="data?.table_data"
                             @sort="updateSorter($event, () => updateDataProvider());"
                             @paginate="paginate($event, () => updateDataProvider());"
-                            @actionDispatched="openModal($event.action, $event.model)"
+                            @actionDispatched="onOpenModal($event.action, $event.model)"
                         />
                     </template>
 
@@ -100,7 +121,7 @@ const modalComponents = {
                         <AppModal
                             :opened="!!modalAction"
                             :max-width-class="data.modals[modalAction]?.max_width"
-                            @close="closeModal(() => {})"
+                            @close="onModalClose"
                         >
                             <template v-slot:content>
                                 <component
@@ -109,6 +130,7 @@ const modalComponents = {
                                     :modal-data="data.modals[modalAction]"
                                     @close="closeModal(() => {})"
                                     @processed="closeModal(() => updateDataProvider())"
+                                    @mutated="modalMutated = true"
                                 />
                             </template>
                         </AppModal>

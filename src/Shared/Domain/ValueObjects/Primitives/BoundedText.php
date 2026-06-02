@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\BoundedContext\Habits\Domain\ValueObjects\Primitives;
+namespace Core\Shared\Domain\ValueObjects\Primitives;
 
 use Core\Shared\Domain\ValueObjects\ValueObject;
 

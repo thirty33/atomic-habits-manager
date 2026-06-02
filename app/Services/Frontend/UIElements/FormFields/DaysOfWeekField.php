@@ -9,7 +9,7 @@ class DaysOfWeekField implements Contracts\Field
 
     const COMPONENT = 'AppDaysOfWeekField';
 
-    const CSS_LABEL_CLASS = 'block mb-2 text-sm font-medium text-gray-900 dark:text-white';
+    const CSS_LABEL_CLASS = 'block mb-1.5 text-[13px] font-medium text-ink-700';
 
     protected ?array $visibleWhen = null;
 

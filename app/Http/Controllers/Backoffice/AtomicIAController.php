@@ -11,7 +11,7 @@ use Core\BoundedContext\Conversations\Application\DTOs\DeleteConversationData;
 use Core\BoundedContext\Conversations\Application\DTOs\PostUserMessageData;
 use Core\BoundedContext\Conversations\Application\ViewModels\GetAtomicIAViewModel;
 use Core\BoundedContext\Conversations\Domain\Exceptions\ConversationNotFound;
-use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\UserId;
+use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
