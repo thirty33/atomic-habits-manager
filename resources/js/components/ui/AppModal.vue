@@ -21,10 +21,10 @@ defineEmits(['close'])
 
 <template>
     <div v-show="opened">
-        <div class="fixed inset-0 z-10 w-screen overflow-y-auto bg-ink-900/45">
-            <div class="flex min-h-full items-end justify-center p-4 sm:items-center sm:p-0">
-                <div :class="['relative p-4 w-full max-h-full', maxWidthClass]">
-                    <div class="relative bg-card rounded-2xl border border-line-200 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.3)]">
+        <div class="fixed inset-0 z-[60] w-screen overflow-y-auto bg-ink-900/45">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div :class="['relative w-full', maxWidthClass]">
+                    <div class="relative flex flex-col max-h-[calc(100vh-2rem)] bg-card rounded-2xl border border-line-200 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.3)]">
                         <div class="absolute right-0 top-0 pr-3.5 pt-3.5 z-10">
                             <button
                                 type="button"
@@ -49,7 +49,9 @@ defineEmits(['close'])
                             </button>
                         </div>
 
-                        <slot name="content" />
+                        <div class="overflow-y-auto rounded-2xl">
+                            <slot name="content" />
+                        </div>
 
                     </div>
                 </div>

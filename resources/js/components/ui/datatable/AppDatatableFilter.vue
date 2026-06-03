@@ -41,11 +41,12 @@ const loadedComponents = components(props.fields, formFieldsLoader);
 </script>
 
 <template>
-    <div class="mb-4">
-        <div class="grid grid-cols-2 gap-3 lg:flex lg:items-end lg:space-x-4">
+    <div class="mb-4 rounded-xl border border-line-200 bg-card p-4">
+        <div class="grid grid-cols-2 gap-3 lg:flex lg:items-end lg:gap-4">
             <div
                 v-for="field in fields"
                 :key="`filter-field-${field.props.name}-${field.uuid}`"
+                class="lg:flex-1"
             >
                 <component
                     :is="findComponentByName(field.component, loadedComponents)"
@@ -54,10 +55,12 @@ const loadedComponents = components(props.fields, formFieldsLoader);
                     @update:modelValue="filter"
                 />
             </div>
+        </div>
 
+        <div class="mt-3 flex items-center justify-end">
             <button
                 type="button"
-                class="inline-flex items-center justify-center px-4 py-2 self-end text-white bg-btn-secondary hover:bg-btn-secondary-hover focus:ring-4 focus:outline-none focus:ring-btn-secondary/30 font-medium rounded-lg text-sm text-center transition-colors"
+                class="inline-flex items-center px-3 py-2 rounded-lg text-[12.5px] font-medium text-ink-500 hover:bg-line-100 hover:text-ink-900 transition-colors"
                 @click="resetFilters"
             >
                 Limpiar filtros

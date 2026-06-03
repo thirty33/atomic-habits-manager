@@ -17,6 +17,7 @@ class CompoundColumn extends Column
     {
         return array_filter([
             'component' => static::COMPONENT,
+            'kind' => static::KIND,
             'label' => __($this->label),
             'key' => $this->key,
             'data_key' => $this->dataKey ?? $this->key,

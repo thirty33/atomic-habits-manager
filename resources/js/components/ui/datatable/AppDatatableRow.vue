@@ -5,7 +5,7 @@ export default {
 </script>
 
 <template>
-    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 m-5">
+    <tr class="border-b border-line-100 last:border-b-0 transition-colors hover:bg-line-100/60">
         <slot />
     </tr>
 </template>
