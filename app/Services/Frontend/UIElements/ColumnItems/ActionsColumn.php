@@ -8,6 +8,8 @@ final class ActionsColumn implements ColumnItem
 {
     const COMPONENT = 'AppDatatableActionsColumn';
 
+    const KIND = 'actions';
+
     public function __construct(
         protected string $label,
         protected string $key,
@@ -18,10 +20,11 @@ final class ActionsColumn implements ColumnItem
     {
         return [
             'component' => self::COMPONENT,
+            'kind' => self::KIND,
             'label' => __($this->label),
             'key' => $this->key,
             'sortable' => false,
-            'actions' => array_map(fn(ActionColumn $action) => $action->generate(), $this->actions),
+            'actions' => array_map(fn (ActionColumn $action) => $action->generate(), $this->actions),
         ];
     }
 }

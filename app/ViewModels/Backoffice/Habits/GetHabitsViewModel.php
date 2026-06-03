@@ -22,7 +22,7 @@ use App\Services\Frontend\UIElements\ColumnItems\ActionColumn;
 use App\Services\Frontend\UIElements\ColumnItems\ActionsColumn;
 use App\Services\Frontend\UIElements\ColumnItems\BooleanColumn;
 use App\Services\Frontend\UIElements\ColumnItems\DateColumn;
-use App\Services\Frontend\UIElements\ColumnItems\ScheduleCompoundColumn;
+use App\Services\Frontend\UIElements\ColumnItems\SchedulesCompoundColumn;
 use App\Services\Frontend\UIElements\ColumnItems\TextColumn;
 use App\Services\Frontend\UIElements\FormFields\CheckboxField;
 use App\Services\Frontend\UIElements\FormFields\DateField;
@@ -143,9 +143,9 @@ final class GetHabitsViewModel extends ViewModel implements Datatable
                     falseValue: 'No',
                 )
             )->addColumn(
-                new ScheduleCompoundColumn(
+                new SchedulesCompoundColumn(
                     label: __('Programación'),
-                    key: 'active_schedule',
+                    key: 'schedules',
                 )
             )->addColumn(
                 new DateColumn(

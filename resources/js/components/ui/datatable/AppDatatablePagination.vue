@@ -17,7 +17,7 @@ defineEmits(['paginate'])
 </script>
 
 <template>
-    <div class="flex items-center justify-between border-t border-gray-200">
+    <div class="flex items-center justify-between px-5 py-3">
         <div class="sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <AppDatatablePaginationSummary
                 :from="pagination.meta.from"

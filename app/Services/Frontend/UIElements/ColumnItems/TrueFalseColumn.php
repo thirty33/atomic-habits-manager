@@ -4,6 +4,8 @@ namespace App\Services\Frontend\UIElements\ColumnItems;
 
 abstract class TrueFalseColumn extends Column
 {
+    const KIND = 'boolean';
+
     public function generate(): array
     {
         $column = parent::generate();

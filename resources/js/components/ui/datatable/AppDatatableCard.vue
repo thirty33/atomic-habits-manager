@@ -17,6 +17,8 @@ defineProps({
 })
 
 import useScheduleDisplay from "@/composables/useScheduleDisplay.js";
+import AppDatatableCell from "@/components/ui/datatable/columns/AppDatatableCell.vue";
+import { resolveRenderer } from "@/components/ui/datatable/columns/registry";
 
 defineEmits(['actionDispatched'])
 
@@ -27,15 +29,31 @@ const isCompoundColumn = (column) => !!column.is_compound
 </script>
 
 <template>
-    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-        <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+    <div class="bg-card border border-line-200 rounded-xl shadow-sm p-4">
+        <AppDatatableCell
+            v-if="resolveRenderer(columns[0]?.kind, 'card')"
+            :column="columns[0]"
+            :row="row"
+            viewport="card"
+            variant="title"
+        />
+        <h3 v-else class="text-base font-semibold text-gray-900 dark:text-white mb-3 pb-2 border-b border-gray-100 dark:border-gray-700">
             {{ row[columns[0]?.key] }}
         </h3>
 
         <dl class="space-y-2">
             <template v-for="column in columns.slice(1)" :key="`card-field-${column.key}`">
+                <AppDatatableCell
+                    v-if="resolveRenderer(column.kind, 'card')"
+                    :column="column"
+                    :row="row"
+                    viewport="card"
+                    variant="field"
+                    :label="column.label"
+                    @actionDispatched="$emit('actionDispatched', $event)"
+                />
                 <div
-                    v-if="isCompoundColumn(column)"
+                    v-else-if="isCompoundColumn(column)"
                     class="py-1"
                 >
                     <dt class="text-xs font-medium text-gray-500 uppercase dark:text-gray-400 mb-1">

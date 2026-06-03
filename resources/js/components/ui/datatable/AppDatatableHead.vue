@@ -18,32 +18,30 @@ defineEmits(['sort'])
 </script>
 
 <template>
-    <thead class="text-xs left text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-        <tr>
+    <thead>
+        <tr class="border-b border-line-200">
             <th
                 v-for="(column, index) in columns"
                 :key='`column-${index}`'
-                class="px-3 py-2 sm:px-6 sm:py-3"
+                class="px-4 py-3.5 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase text-ink-400 text-left whitespace-nowrap"
+                :class="{ 'cursor-pointer hover:text-ink-700': column.sortable }"
                 @click="$emit('sort', column)"
             >
-                <a href="#" class="group inline-flex">
+                <span class="inline-flex items-center gap-1">
                     {{ column.label }}
-                    <span
-                        v-if="column.sortable"
-                        class="ml-2 -mt-1"
-                    >
+                    <span v-if="column.sortable">
                         <ChevronUpIcon
                             v-if="column.direction === 'asc'"
-                            class="h-5 w-5"
+                            class="h-3 w-3"
                             aria-hidden="true"
                         />
                         <ChevronDownIcon
                             v-else
-                            class="h-5 w-5"
+                            class="h-3 w-3"
                             aria-hidden="true"
                         />
                     </span>
-                </a>
+                </span>
             </th>
         </tr>
     </thead>

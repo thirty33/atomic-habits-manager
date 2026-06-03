@@ -6,15 +6,15 @@ use App\Services\Frontend\UIElements\Buttons\Contracts\Button;
 
 final class ButtonGenerator
 {
-    const CREATE_INLINE_CSS_CLASS = 'inline-flex items-center gap-1 text-white bg-btn-primary hover:bg-btn-primary-hover focus:ring-4 focus:outline-none focus:ring-btn-primary/30 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors';
+    const CREATE_INLINE_CSS_CLASS = 'inline-flex items-center gap-2 bg-brand-700 text-paper hover:bg-brand-800 focus:ring-2 focus:outline-none focus:ring-brand-700/30 font-medium rounded-lg text-[13.5px] leading-none px-[18px] py-[11px] text-center transition-colors';
 
-    const EXPORT_INLINE_CSS_CLASS = 'inline-flex items-center gap-1 text-white bg-btn-success hover:bg-btn-success-hover focus:ring-4 focus:outline-none focus:ring-btn-success/30 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors';
+    const EXPORT_INLINE_CSS_CLASS = 'inline-flex items-center gap-2 bg-transparent text-ink-900 ring-1 ring-inset ring-line-300 hover:bg-line-100 font-medium rounded-lg text-[13.5px] leading-none px-[18px] py-[11px] text-center transition-colors';
 
-    const SHOW_CSS_CLASS = 'text-white bg-btn-secondary hover:bg-btn-secondary-hover focus:ring-4 focus:outline-none focus:ring-btn-secondary/30 font-medium rounded-lg text-xs px-3 py-1.5 text-center transition-colors';
+    const SHOW_CSS_CLASS = 'inline-flex items-center gap-1.5 bg-line-100 text-ink-700 hover:bg-line-200 font-medium rounded-[7px] text-[12.5px] leading-none px-3 py-[7px] text-center transition-colors';
 
-    const EDIT_CSS_CLASS = 'text-white bg-btn-info hover:bg-btn-info-hover focus:ring-4 focus:outline-none focus:ring-btn-info/30 font-medium rounded-lg text-xs px-3 py-1.5 text-center transition-colors';
+    const EDIT_CSS_CLASS = 'inline-flex items-center gap-1.5 bg-brand-50 text-brand-800 hover:bg-brand-100 font-medium rounded-[7px] text-[12.5px] leading-none px-3 py-[7px] text-center transition-colors';
 
-    const DELETE_CSS_CLASS = 'text-white bg-btn-danger hover:bg-btn-danger-hover focus:ring-4 focus:outline-none focus:ring-btn-danger/30 font-medium rounded-lg text-xs px-3 py-1.5 text-center transition-colors';
+    const DELETE_CSS_CLASS = 'inline-flex items-center gap-1.5 bg-transparent text-ink-500 ring-1 ring-inset ring-line-200 hover:text-danger-2 hover:bg-danger-2/10 hover:ring-danger-2/20 font-medium rounded-[7px] text-[12.5px] leading-none px-3 py-[7px] text-center transition-colors';
 
     private array $buttons = [];
 

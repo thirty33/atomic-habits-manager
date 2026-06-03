@@ -15,6 +15,8 @@ import {
     AppDatatablePagination,
     AppDatatableCard,
 } from "@/components/ui/datatable";
+import AppDatatableCell from "@/components/ui/datatable/columns/AppDatatableCell.vue";
+import { resolveRenderer } from "@/components/ui/datatable/columns/registry";
 
 const props = defineProps({
     columns: {
@@ -50,7 +52,7 @@ const loadedComponents = components(props.columns, columnsLoader);
         </div>
 
         <!-- Desktop: Table view -->
-        <div class="hidden lg:block relative overflow-x-auto table-scrollbar">
+        <div class="hidden lg:block rounded-xl border border-line-200 bg-card overflow-hidden">
             <AppDatatableTable>
                 <AppDatatableHead
                     :columns="columns"
@@ -62,8 +64,17 @@ const loadedComponents = components(props.columns, columnsLoader);
                         :key="`table-row-${rowIndex}`"
                     >
                         <template v-for="column in columns">
+                            <AppDatatableCell
+                                v-if="resolveRenderer(column.kind, 'table')"
+                                :key="`cell-${column.key}-${rowIndex}`"
+                                :column="column"
+                                :row="row"
+                                viewport="table"
+                                @actionDispatched="$emit('actionDispatched', { type: $event.event, row })"
+                            />
+
                             <component
-                                v-if="column.is_compound"
+                                v-else-if="column.is_compound"
                                 :key="`table-compound-${column.key}-${rowIndex}`"
                                 :is="findComponentByName(column.component, loadedComponents)"
                                 :column="column"
@@ -89,12 +100,21 @@ const loadedComponents = components(props.columns, columnsLoader);
                     </AppDatatableRow>
                 </AppDatatableBody>
             </AppDatatableTable>
+
+            <div class="border-t border-line-200">
+                <AppDatatablePagination
+                    :pagination="pagination"
+                    @paginate="$emit('paginate', $event)"
+                />
+            </div>
         </div>
 
-        <AppDatatablePagination
-            :pagination="pagination"
-            @paginate="$emit('paginate', $event)"
-        />
+        <div class="lg:hidden mt-4 rounded-xl border border-line-200 bg-card overflow-hidden">
+            <AppDatatablePagination
+                :pagination="pagination"
+                @paginate="$emit('paginate', $event)"
+            />
+        </div>
     </div>
 
     <AppDatatableNoData v-else />

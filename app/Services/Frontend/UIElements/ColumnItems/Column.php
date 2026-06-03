@@ -6,6 +6,10 @@ use App\Services\Frontend\UIElements\ColumnItems\Contracts\ColumnItem;
 
 class Column implements ColumnItem
 {
+    const COMPONENT = null;
+
+    const KIND = null;
+
     public function __construct(
         protected string $label,
         protected string $key,
@@ -20,6 +24,7 @@ class Column implements ColumnItem
     {
         return array_filter([
             'component' => static::COMPONENT,
+            'kind' => static::KIND,
             'label' => __($this->label),
             'key' => $this->key,
             'sortable' => $this->sortable,
