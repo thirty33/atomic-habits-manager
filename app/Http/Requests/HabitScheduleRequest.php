@@ -23,7 +23,7 @@ class HabitScheduleRequest extends FormRequest
         return [
             'habit_id' => ['required', 'exists:habits,habit_id'],
             'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'end_time' => ['required', 'date_format:H:i', 'different:start_time'],
             'recurrence_type' => ['required', Rule::in(array_column(RecurrenceType::cases(), 'value'))],
             'days_of_week' => ['nullable', 'array', 'required_if:recurrence_type,weekly'],
             'days_of_week.*' => ['integer', 'min:0', 'max:6'],
@@ -41,7 +41,7 @@ class HabitScheduleRequest extends FormRequest
             'start_time.date_format' => 'El formato de hora debe ser HH:MM',
             'end_time.required' => 'La hora de fin es requerida',
             'end_time.date_format' => 'El formato de hora debe ser HH:MM',
-            'end_time.after' => 'La hora de fin debe ser posterior a la hora de inicio',
+            'end_time.different' => 'La hora de fin no puede ser igual a la hora de inicio',
             'recurrence_type.required' => 'El tipo de recurrencia es requerido',
             'days_of_week.required_if' => 'Debes seleccionar al menos un día de la semana',
             'interval_days.required_if' => 'Debes especificar cada cuántos días',

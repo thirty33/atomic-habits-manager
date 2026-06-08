@@ -18,12 +18,14 @@ class HabitOccurrence extends Model
         'habit_id',
         'habit_schedule_id',
         'occurrence_date',
+        'end_date',
         'start_time',
         'end_time',
     ];
 
     protected $casts = [
         'occurrence_date' => 'date',
+        'end_date' => 'date',
         'start_time' => TimeCast::class,
         'end_time' => TimeCast::class,
     ];

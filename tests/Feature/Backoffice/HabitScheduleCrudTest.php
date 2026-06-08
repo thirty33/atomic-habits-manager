@@ -173,11 +173,11 @@ class HabitScheduleCrudTest extends TestCase
         $response->assertSessionHasErrors(['start_time', 'end_time', 'recurrence_type']);
     }
 
-    public function test_store_validates_end_time_after_start_time(): void
+    public function test_store_rejects_equal_start_and_end_time(): void
     {
         $response = $this->actingAs($this->user)->post(route('backoffice.habit-schedules.store'), [
             'habit_id' => $this->habit->habit_id,
-            'start_time' => '09:00',
+            'start_time' => '08:00',
             'end_time' => '08:00',
             'recurrence_type' => 'daily',
             'starts_from' => '2026-03-01',

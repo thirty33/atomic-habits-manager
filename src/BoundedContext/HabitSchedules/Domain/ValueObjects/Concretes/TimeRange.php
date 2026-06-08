@@ -16,9 +16,9 @@ final readonly class TimeRange
         self::assertHHMM($startTime, 'startTime');
         self::assertHHMM($endTime, 'endTime');
 
-        if ($endTime <= $startTime) {
+        if ($endTime === $startTime) {
             throw new \InvalidArgumentException(sprintf(
-                'endTime (%s) must be greater than startTime (%s).',
+                'endTime (%s) must differ from startTime (%s).',
                 $endTime,
                 $startTime,
             ));

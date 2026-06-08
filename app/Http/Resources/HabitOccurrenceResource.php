@@ -23,6 +23,7 @@ class HabitOccurrenceResource extends JsonResource
             'habit_id' => $snap->habitId,
             'habit_schedule_id' => $snap->habitScheduleId,
             'occurrence_date' => $snap->occurrenceDate,
+            'end_date' => $snap->endDate,
             'start_time' => $snap->startTime,
             'end_time' => $snap->endTime,
             'habit' => $snap->habitName === null ? null : [
