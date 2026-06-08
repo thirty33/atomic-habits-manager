@@ -19,12 +19,21 @@ final class OccurrenceTime extends ValueObject
         $this->validateFormat($startTime, 'startTime');
         $this->validateFormat($endTime, 'endTime');
 
-        if ($this->normalize($endTime) <= $this->normalize($startTime)) {
-            throw new InvalidArgumentException('OccurrenceTime: end_time must be after start_time');
+        if ($this->normalize($endTime) === $this->normalize($startTime)) {
+            throw new InvalidArgumentException('OccurrenceTime: end_time must differ from start_time');
         }
 
         $this->startTime = $this->normalize($startTime);
         $this->endTime = $this->normalize($endTime);
+    }
+
+    /**
+     * A window crosses midnight when its end clock-time falls before its start
+     * clock-time (e.g. 23:00 -> 07:00). The equal case is rejected on construction.
+     */
+    public function crossesMidnight(): bool
+    {
+        return $this->endTime < $this->startTime;
     }
 
     public function startTime(): string
@@ -42,7 +51,9 @@ final class OccurrenceTime extends ValueObject
         $start = DateTimeImmutable::createFromFormat('H:i', $this->startTime);
         $end = DateTimeImmutable::createFromFormat('H:i', $this->endTime);
 
-        return (int) (($end->getTimestamp() - $start->getTimestamp()) / 60);
+        $minutes = (int) (($end->getTimestamp() - $start->getTimestamp()) / 60);
+
+        return $minutes > 0 ? $minutes : $minutes + 1440;
     }
 
     /**

@@ -25,7 +25,7 @@ class SaveReportEntriesRequest extends FormRequest
             'entries.*.habit_id' => ['nullable', 'integer', 'exists:habits,habit_id'],
             'entries.*.custom_activity' => ['nullable', 'string', 'max:255'],
             'entries.*.start_time' => ['required', 'date_format:H:i'],
-            'entries.*.end_time' => ['required', 'date_format:H:i', 'after:entries.*.start_time'],
+            'entries.*.end_time' => ['required', 'date_format:H:i', 'different:entries.*.start_time'],
             'entries.*.status' => ['required', Rule::enum(ReportEntryStatus::class)],
             'entries.*.notes' => ['nullable', 'string', 'max:2000'],
         ];
@@ -36,7 +36,7 @@ class SaveReportEntriesRequest extends FormRequest
         return [
             'entries.*.start_time.required' => 'La hora de inicio es obligatoria',
             'entries.*.end_time.required' => 'La hora de fin es obligatoria',
-            'entries.*.end_time.after' => 'La hora de fin debe ser posterior a la hora de inicio',
+            'entries.*.end_time.different' => 'La hora de fin no puede ser igual a la hora de inicio',
             'entries.*.status.required' => 'El estado es obligatorio',
         ];
     }

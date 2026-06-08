@@ -150,6 +150,7 @@ final readonly class EloquentHabitOccurrenceRepository implements HabitOccurrenc
             'habit_id' => $occurrence->habitId()->value(),
             'habit_schedule_id' => $occurrence->scheduleId()?->value(),
             'occurrence_date' => $occurrence->scheduledDate()->toString(),
+            'end_date' => $occurrence->endDate()->toString(),
             'start_time' => $occurrence->timeWindow()->startTime(),
             'end_time' => $occurrence->timeWindow()->endTime(),
             'created_at' => $occurrence->createdAt()->format('Y-m-d H:i:s'),
@@ -169,6 +170,7 @@ final readonly class EloquentHabitOccurrenceRepository implements HabitOccurrenc
                 ? (int) $attrs['habit_schedule_id']
                 : null,
             occurrenceDate: (string) $attrs['occurrence_date'],
+            endDate: substr((string) ($attrs['end_date'] ?? $attrs['occurrence_date']), 0, 10),
             startTime: substr((string) $attrs['start_time'], 0, 5),
             endTime: substr((string) $attrs['end_time'], 0, 5),
             habitName: $habit?->name,

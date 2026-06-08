@@ -29,9 +29,9 @@ final class EntryTime extends ValueObject
             );
         }
 
-        if ($parsedEnd <= $parsedStart) {
+        if ($normEnd === $normStart) {
             throw new InvalidArgumentException(
-                sprintf('EntryTime end (%s) must be strictly after start (%s).', $end, $start)
+                sprintf('EntryTime end (%s) must differ from start (%s).', $end, $start)
             );
         }
 

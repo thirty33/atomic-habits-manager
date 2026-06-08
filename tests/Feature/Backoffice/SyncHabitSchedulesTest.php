@@ -89,7 +89,7 @@ class SyncHabitSchedulesTest extends TestCase
         $response = $this->actingAs($this->user)->put(
             route('backoffice.habits.schedules.sync', $this->habit->habit_id),
             ['schedules' => [
-                ['start_time' => '09:00', 'end_time' => '08:00', 'recurrence_type' => 'daily', 'starts_from' => '2026-03-01'],
+                ['start_time' => '08:00', 'end_time' => '08:00', 'recurrence_type' => 'daily', 'starts_from' => '2026-03-01'],
             ]]
         );
 

@@ -68,7 +68,7 @@ final class HabitCreateStrategy implements CreatableResource
                 ->enum(['none', 'daily', 'weekly', 'every_n_days'])
                 ->description('Tipo de recurrencia. Si lo envías, también debes enviar schedule_start_time y schedule_end_time. none=fecha única (requiere schedule_specific_date), daily=todos los días, weekly=días específicos (requiere schedule_days_of_week), every_n_days=cada N días (requiere schedule_interval_days).'),
             'schedule_start_time' => $schema->string()->description('Hora de inicio HH:MM. Si lo envías, debes enviar también schedule_end_time.'),
-            'schedule_end_time' => $schema->string()->description('Hora de fin HH:MM. Obligatorio junto con schedule_start_time.'),
+            'schedule_end_time' => $schema->string()->description('Hora de fin HH:MM. Obligatorio junto con schedule_start_time. Puede ser ANTERIOR a la hora de inicio para indicar que la sesión cruza la medianoche (ej. dormir de 23:00 a 07:00): en ese caso es UNA sola programación, NO la dividas en dos ni inviertas las horas. La única restricción es que no puede ser igual a schedule_start_time.'),
             'schedule_days_of_week' => $schema->string()->description('Días separados por coma usando números enteros: 0=domingo, 1=lunes, 2=martes, 3=miércoles, 4=jueves, 5=viernes, 6=sábado. Ejemplo lunes a viernes: "1,2,3,4,5". Obligatorio si schedule_recurrence_type=weekly.'),
             'schedule_interval_days' => $schema->integer()->description('Cada cuántos días repetir. Obligatorio si schedule_recurrence_type=every_n_days.'),
             'schedule_specific_date' => $schema->string()->description('Fecha YYYY-MM-DD. Obligatorio si schedule_recurrence_type=none.'),

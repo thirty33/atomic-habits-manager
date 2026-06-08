@@ -159,6 +159,7 @@ class CalendarOccurrencesTest extends TestCase
                     'habit_id',
                     'habit_schedule_id',
                     'occurrence_date',
+                    'end_date',
                     'start_time',
                     'end_time',
                     'habit' => [
@@ -178,6 +179,37 @@ class CalendarOccurrencesTest extends TestCase
         $response->assertJsonPath('data.0.habit.name', 'Meditación');
         $response->assertJsonPath('data.0.habit.color', '#8b5cf6');
         $response->assertJsonPath('data.0.occurrence_date', '2026-03-10');
+        $response->assertJsonPath('data.0.end_date', '2026-03-10');
+    }
+
+    public function test_exposes_end_date_on_next_day_for_cross_midnight_occurrence(): void
+    {
+        $habit = Habit::withoutEvents(fn () => Habit::factory()->for($this->user)->create());
+
+        $schedule = HabitSchedule::withoutEvents(fn () => HabitSchedule::factory()->create([
+            'habit_id' => $habit->habit_id,
+            'start_time' => '23:40',
+            'end_time' => '07:00',
+        ]));
+
+        HabitOccurrence::factory()->create([
+            'habit_id' => $habit->habit_id,
+            'habit_schedule_id' => $schedule->habit_schedule_id,
+            'occurrence_date' => '2026-03-10',
+            'end_date' => '2026-03-11',
+            'start_time' => '23:40',
+            'end_time' => '07:00',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson(route('backoffice.calendar.occurrences', [
+                'start' => '2026-03-01',
+                'end' => '2026-03-31',
+            ]));
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.occurrence_date', '2026-03-10');
+        $response->assertJsonPath('data.0.end_date', '2026-03-11');
     }
 
     public function test_occurrences_ordered_by_date_and_time(): void
