@@ -84,6 +84,21 @@ final class HabitOccurrence extends AggregateRoot
         return $this->scheduledDate;
     }
 
+    /**
+     * The calendar date on which the window ends. Equals the anchor for an
+     * intra-day window, or the next day when the window crosses midnight.
+     */
+    public function endDate(): OccurrenceDate
+    {
+        if (! $this->timeWindow->crossesMidnight()) {
+            return $this->scheduledDate;
+        }
+
+        return OccurrenceDate::fromString(
+            $this->scheduledDate->date()->modify('+1 day')->format('Y-m-d'),
+        );
+    }
+
     public function timeWindow(): OccurrenceTime
     {
         return $this->timeWindow;
