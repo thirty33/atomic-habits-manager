@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\DispatchDailyInsightsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -28,3 +29,6 @@ Schedule::command('events:relay --once --limit=200')->everyTenSeconds()->without
 // production. The command itself stays on disk for rollback.
 // Schedule::command('atomic-ia:moderate')->everyMinute()->withoutOverlapping()->runInBackground();
 Schedule::command('habits:generate-occurrences')->dailyAt('03:00')->withoutOverlapping();
+// Genera (vía LLM) una sugerencia diaria por usuario con hábitos activos y la
+// persiste; el dashboard lee la última. Corre después de generar occurrences.
+Schedule::job(new DispatchDailyInsightsJob)->dailyAt('04:00')->withoutOverlapping();

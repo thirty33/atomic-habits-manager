@@ -7,4 +7,5 @@ return [
     App\Providers\ConversationServiceProvider::class,
     App\Providers\HabitServiceProvider::class,
     App\Providers\IdentityServiceProvider::class,
+    App\Providers\InsightServiceProvider::class,
 ];

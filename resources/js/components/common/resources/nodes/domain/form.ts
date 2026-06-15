@@ -34,11 +34,39 @@ function isVisible(field: FieldDefinition, values: FormValues): boolean {
     );
 }
 
-/** One-line summary of selected field values (collapsed list items). */
-export function summarize(values: FormValues, fieldNames: string[]): string {
+/** An option of a select-like field, as produced by PHP `SelectField`. */
+interface FieldOption {
+    text: string;
+    value: unknown;
+}
+
+function fieldOptions(field: FieldDefinition | undefined): FieldOption[] | undefined {
+    return field?.props.options as FieldOption[] | undefined;
+}
+
+/** Human label for a single value, resolving a select option to its text. */
+function labelFor(field: FieldDefinition | undefined, value: unknown): string {
+    const match = fieldOptions(field)?.find((option) => option.value === value);
+
+    return match ? match.text : String(value);
+}
+
+/** Human-readable display of a field value (joins multi-value selects). */
+export function displayValue(field: FieldDefinition | undefined, value: unknown): string {
+    return Array.isArray(value)
+        ? value.map((entry) => labelFor(field, entry)).join(", ")
+        : labelFor(field, value);
+}
+
+/**
+ * One-line summary of selected field values (collapsed list items). Resolves
+ * select fields to their option label so the header shows "Algunos días de la
+ * semana" instead of the raw enum value "weekly".
+ */
+export function summarize(values: FormValues, fields: FieldDefinition[], fieldNames: string[]): string {
     return fieldNames
-        .map((name) => values[name])
-        .map((value) => (Array.isArray(value) ? value.join(", ") : value))
-        .filter((value) => value !== "" && value != null)
+        .map((name) => ({ field: fields.find((f) => f.props.name === name), value: values[name] }))
+        .filter(({ value }) => value !== "" && value != null)
+        .map(({ field, value }) => displayValue(field, value))
         .join(" · ");
 }

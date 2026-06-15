@@ -119,6 +119,7 @@ final class AtomicIAAgent implements Agent, Conversational, HasMiddleware, HasTo
         ## Capacidades actuales
         - Saludar al usuario de forma personalizada
         - Consultar los hábitos del usuario y sus programaciones
+        - Analizar los reportes diarios del usuario (adherencia, racha, cumplimiento por hábito y reflexiones) y, a partir de esos datos, ofrecer sugerencias de mejora concretas
         - Crear nuevos hábitos con o sin programación inicial
         - Actualizar un hábito y/o sus programaciones
         - Eliminar un hábito completo, o solo una programación específica

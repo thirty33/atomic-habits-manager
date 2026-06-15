@@ -16,6 +16,7 @@ use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitDeleteStrategy;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitListStrategy;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\HabitUpdateStrategy;
+use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Strategies\ReportAnalysisStrategy;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\BulkCreateResourceTool;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\BulkDeleteResourceTool;
 use Core\BoundedContext\Conversations\Infrastructure\AiOrchestration\Tools\BulkUpdateResourceTool;
@@ -70,7 +71,11 @@ final readonly class LaravelAiResponseProvider implements AiResponseProvider
     {
         return [
             new GreetTool,
-            new ListResourceTool($userId, $this->container->make(HabitListStrategy::class)),
+            new ListResourceTool(
+                $userId,
+                $this->container->make(HabitListStrategy::class),
+                $this->container->make(ReportAnalysisStrategy::class),
+            ),
             new CreateResourceTool($userId, $this->container->make(HabitCreateStrategy::class)),
             new UpdateResourceTool($userId, $this->container->make(HabitUpdateStrategy::class)),
             new DeleteResourceTool($userId, $this->container->make(HabitDeleteStrategy::class)),

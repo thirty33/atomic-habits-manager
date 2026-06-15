@@ -36,6 +36,8 @@ export interface ModalStepsController {
     busy: boolean;
     nodeBindings: Record<string, unknown>;
     goBack: () => void;
+    canNavigateTo: (index: number) => boolean;
+    navigateTo: (index: number) => void;
     submitCurrentStep: () => Promise<void>;
     skipCurrentStep: () => void;
 }
@@ -64,7 +66,7 @@ export function useModalSteps(
         return { kind: NodeKind.Form, form: useNodeForm(step.content.fields, { model }) };
     });
 
-    const { currentIndex, currentStep, isFirst, isLast, goNext, goBack } = useStepFlow(steps);
+    const { currentIndex, currentStep, isFirst, isLast, goNext, goBack, goToStep } = useStepFlow(steps);
 
     // Cross-step capture: the sync action of the habit created in step 1 (create flow).
     const createdScheduleAction = ref<ActionRequest | null>(null);
@@ -141,6 +143,42 @@ export function useModalSteps(
         }
     };
 
+    // A step is reachable when its own action is resolvable: form steps always are;
+    // a schedules (list) step needs its sync action — baked on the model in edit,
+    // or captured from step 1's response in create (null until the habit exists).
+    const isStepReachable = (index: number): boolean => {
+        const state = stepStates[index];
+        if (state.kind === NodeKind.Form) {
+            return true;
+        }
+
+        return resolveScheduleAction(model, createdScheduleAction.value) !== null;
+    };
+
+    // Backwards is always allowed; forwards only if every step up to the target is reachable.
+    const canNavigateTo = (index: number): boolean => {
+        if (index <= currentIndex.value) {
+            return true;
+        }
+
+        for (let step = currentIndex.value + 1; step <= index; step++) {
+            if (!isStepReachable(step)) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    // Direct step jump from the stepper (no submit required), gated by reachability.
+    const navigateTo = (index: number): void => {
+        if (busy.value || index === currentIndex.value || !canNavigateTo(index)) {
+            return;
+        }
+
+        goToStep(index);
+    };
+
     // Optional step (create flow): the habit already exists from step 1; just close.
     const skipCurrentStep = (): void => {
         lifecycle.onCompleted();
@@ -155,6 +193,8 @@ export function useModalSteps(
         busy,
         nodeBindings,
         goBack,
+        canNavigateTo,
+        navigateTo,
         submitCurrentStep,
         skipCurrentStep,
     }) as ModalStepsController;

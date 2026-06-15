@@ -99,6 +99,15 @@ interface HabitRepository
     public function pendingExtensionIds(string $thresholdYmd): array;
 
     /**
+     * IDs de usuarios con al menos un habit activo (is_active=true, no
+     * soft-deleted). Consumido por el job diario que genera insights del
+     * dashboard, para saber a qué usuarios procesar.
+     *
+     * @return list<int>
+     */
+    public function userIdsWithActiveHabits(): array;
+
+    /**
      * Marca un habit como rebuild-completado: needs_occurrence_rebuild=false
      * sin tocar updated_at. Usado al final del job de regeneración.
      */

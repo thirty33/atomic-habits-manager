@@ -7,6 +7,8 @@ namespace Core\BoundedContext\DailyReports\Infrastructure\Persistence\Eloquent;
 use App\Models\DailyReport as DailyReportModel;
 use App\Models\DailyReportEntry as DailyReportEntryModel;
 use Carbon\Carbon;
+use Core\BoundedContext\DailyReports\Application\DailyReportReader;
+use Core\BoundedContext\DailyReports\Application\ReadModels\ReflectionSnapshot;
 use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsCriteria;
 use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsPage;
 use Core\BoundedContext\DailyReports\Domain\DailyReport;
@@ -28,13 +30,77 @@ use Core\BoundedContext\Habits\Domain\ValueObjects\Concretes\HabitId;
 use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Support\Facades\DB;
 
-final readonly class EloquentDailyReportRepository implements DailyReportRepository
+final readonly class EloquentDailyReportRepository implements DailyReportReader, DailyReportRepository
 {
     public function __construct(
         private DailyReportModel $reportModel,
         private DailyReportEntryModel $entryModel,
         private EloquentDailyReportsCriteriaTranslator $criteriaTranslator,
     ) {}
+
+    /**
+     * @return array<int, string>
+     */
+    public function entryStatusesByOccurrence(UserId $userId, string $from, string $to): array
+    {
+        $rows = $this->entryModel->newQuery()
+            ->toBase()
+            ->join('daily_reports', 'daily_report_entries.daily_report_id', '=', 'daily_reports.daily_report_id')
+            ->where('daily_reports.user_id', $userId->value())
+            ->whereBetween('daily_reports.report_date', [$from, $to])
+            ->whereNotNull('daily_report_entries.habit_occurrence_id')
+            ->get([
+                'daily_report_entries.habit_occurrence_id as habit_occurrence_id',
+                'daily_report_entries.status as status',
+            ]);
+
+        $statuses = [];
+        foreach ($rows as $row) {
+            $statuses[(int) $row->habit_occurrence_id] = (string) $row->status;
+        }
+
+        return $statuses;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function reportedDates(UserId $userId, string $from, string $to): array
+    {
+        return $this->reportModel->newQuery()
+            ->toBase()
+            ->where('user_id', $userId->value())
+            ->whereBetween('report_date', [$from, $to])
+            ->orderBy('report_date')
+            ->pluck('report_date')
+            ->map(fn ($date): string => substr((string) $date, 0, 10))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function latestReflection(UserId $userId): ?ReflectionSnapshot
+    {
+        $row = $this->reportModel->newQuery()
+            ->where('user_id', $userId->value())
+            ->orderByDesc('report_date')
+            ->orderByDesc('daily_report_id')
+            ->first();
+
+        if ($row === null) {
+            return null;
+        }
+
+        $attrs = $row->getAttributes();
+
+        return new ReflectionSnapshot(
+            dailyReportId: (int) $attrs['daily_report_id'],
+            reportDate: substr((string) $attrs['report_date'], 0, 10),
+            mood: isset($attrs['mood']) ? (string) $attrs['mood'] : null,
+            notes: isset($attrs['notes']) ? (string) $attrs['notes'] : null,
+            createdAt: isset($attrs['created_at']) ? (string) $attrs['created_at'] : '',
+        );
+    }
 
     public function save(DailyReport $report): void
     {

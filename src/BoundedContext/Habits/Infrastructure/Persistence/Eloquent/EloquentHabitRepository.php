@@ -146,6 +146,16 @@ final readonly class EloquentHabitRepository implements HabitRepository
             ->all();
     }
 
+    public function userIdsWithActiveHabits(): array
+    {
+        return $this->model->newQuery()
+            ->where('is_active', true)
+            ->distinct()
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
     public function pendingExtensionIds(string $thresholdYmd): array
     {
         return $this->model->newQuery()
