@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Core\BoundedContext\DailyReports\Application\DailyReportReader;
 use Core\BoundedContext\DailyReports\Domain\DailyReportRepository;
 use Core\BoundedContext\DailyReports\Infrastructure\Persistence\Eloquent\EloquentDailyReportRepository;
 use Core\BoundedContext\HabitOccurrences\Application\HabitOccurrenceReader;
@@ -38,6 +39,7 @@ final class HabitServiceProvider extends ServiceProvider
         HabitOccurrenceRepository::class => EloquentHabitOccurrenceRepository::class,
         HabitOccurrenceReader::class => EloquentHabitOccurrenceRepository::class,
         DailyReportRepository::class => EloquentDailyReportRepository::class,
+        DailyReportReader::class => EloquentDailyReportRepository::class,
     ];
 
     public function register(): void

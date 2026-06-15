@@ -21,3 +21,11 @@ export function nextIndex(index: number, total: number): number {
 export function prevIndex(index: number): number {
     return isFirst(index) ? index : index - 1;
 }
+
+export function clampIndex(index: number, total: number): number {
+    if (index < FIRST_INDEX) {
+        return FIRST_INDEX;
+    }
+
+    return index > total - 1 ? total - 1 : index;
+}

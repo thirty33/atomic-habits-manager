@@ -44,11 +44,20 @@ const wizard = useModalSteps(
                 <template v-for="(step, index) in wizard.steps" :key="step.step">
                     <span
                         class="grid place-items-center w-[26px] h-[26px] rounded-full font-mono text-[12px] transition-shadow"
-                        :class="index < wizard.currentIndex
-                            ? 'bg-brand-700 text-paper'
-                            : index === wizard.currentIndex
-                                ? 'bg-brand-700 text-paper ring-4 ring-brand-100'
-                                : 'bg-card text-ink-400 ring-1 ring-inset ring-line-300'"
+                        :class="[
+                            index < wizard.currentIndex
+                                ? 'bg-brand-700 text-paper'
+                                : index === wizard.currentIndex
+                                    ? 'bg-brand-700 text-paper ring-4 ring-brand-100'
+                                    : 'bg-card text-ink-400 ring-1 ring-inset ring-line-300',
+                            index === wizard.currentIndex
+                                ? ''
+                                : wizard.canNavigateTo(index)
+                                    ? 'cursor-pointer hover:ring-2 hover:ring-brand-300'
+                                    : 'opacity-50 cursor-not-allowed',
+                        ]"
+                        :title="`Ir al paso ${step.step}`"
+                        @click="wizard.navigateTo(index)"
                     >
                         <svg
                             v-if="index < wizard.currentIndex"

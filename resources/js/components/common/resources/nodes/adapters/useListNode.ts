@@ -1,5 +1,6 @@
 import { reactive, ref, computed } from "vue";
-import type { ListNode, FormValues, ModalModel } from "../domain/node-schema";
+import { NodeKind } from "../domain/node-schema";
+import type { FieldDefinition, ListNode, FormValues, ModalModel } from "../domain/node-schema";
 import type { ActionRequest, HabitScheduleGateway, MutationResult } from "../application/ports";
 import { RequestError, ValidationError } from "../application/errors";
 import { seedItems, blankItem, canAdd, canRemove } from "../domain/list";
@@ -47,6 +48,9 @@ export function useListNode(
     { model = null }: { model?: ModalModel } = {},
 ): ListNodeController {
     const syncAction = (node.sync_action_key ? (model?.[node.sync_action_key] as ActionRequest) : null) ?? null;
+
+    // Field definitions of each list item, used to resolve summary labels (select options).
+    const itemFields: FieldDefinition[] = node.item_template.kind === NodeKind.Form ? node.item_template.fields : [];
 
     const items = reactive<ListItem[]>(
         seedItems(node, model).map((seed) => ({
@@ -134,7 +138,7 @@ export function useListNode(
         addItem,
         removeItem,
         toggle,
-        summaryFor: (index: number) => summarize(items[index].form, node.summary_fields ?? []),
+        summaryFor: (index: number) => summarize(items[index].form, itemFields, node.summary_fields ?? []),
         itemErrorFor,
         itemCssClassFor,
         submitAll,
