@@ -20,8 +20,8 @@ class CalendarController extends Controller
     public function index(): View
     {
         return view('backoffice.calendar.index', [
-            'json_url' => route('backoffice.calendar.json'),
-            'occurrences_url' => route('backoffice.calendar.occurrences'),
+            'json_url' => route('backoffice.calendar-legacy.json'),
+            'occurrences_url' => route('backoffice.calendar-legacy.occurrences'),
         ]);
     }
 
