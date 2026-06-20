@@ -16,12 +16,21 @@ Route::jsonGroup('habit-schedules', \App\Http\Controllers\Backoffice\HabitSchedu
 Route::put('habits/{id}/schedules', [\App\Http\Controllers\Backoffice\HabitScheduleController::class, 'sync'])
     ->name('habits.schedules.sync');
 
-Route::jsonGroup('calendar', \App\Http\Controllers\Backoffice\CalendarController::class, [
+// New calendar module (rebuilt from scratch, DDD + no libraries).
+Route::jsonGroup('calendar', \App\Http\Controllers\Backoffice\CalendarBoardController::class, [
     'index', 'json',
 ]);
 
-Route::get('calendar/occurrences', [\App\Http\Controllers\Backoffice\CalendarController::class, 'occurrences'])
-    ->name('calendar.occurrences');
+Route::get('calendar/blocks', [\App\Http\Controllers\Backoffice\CalendarBoardController::class, 'blocks'])
+    ->name('calendar.blocks');
+
+// Legacy calendar (FullCalendar-based) preserved during the rebuild; not for production.
+Route::jsonGroup('calendar-legacy', \App\Http\Controllers\Backoffice\CalendarController::class, [
+    'index', 'json',
+]);
+
+Route::get('calendar-legacy/occurrences', [\App\Http\Controllers\Backoffice\CalendarController::class, 'occurrences'])
+    ->name('calendar-legacy.occurrences');
 
 Route::jsonGroup('atomic-ia', \App\Http\Controllers\Backoffice\AtomicIAController::class, [
     'index', 'json', 'store',
