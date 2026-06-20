@@ -167,7 +167,7 @@ class MultiScheduleOccurrencesTest extends TestCase
 
         app(RebuildOccurrencesForHabit::class)(HabitId::from($habit->habit_id), new DateTimeImmutable('2026-05-26'));
 
-        $response = $this->actingAs($user)->getJson(route('backoffice.calendar.occurrences', [
+        $response = $this->actingAs($user)->getJson(route('backoffice.calendar-legacy.occurrences', [
             'start' => '2026-05-26',
             'end' => '2026-06-08',
         ]));

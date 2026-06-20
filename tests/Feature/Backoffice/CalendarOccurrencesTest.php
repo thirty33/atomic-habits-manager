@@ -24,7 +24,7 @@ class CalendarOccurrencesTest extends TestCase
 
     public function test_requires_authentication(): void
     {
-        $this->getJson(route('backoffice.calendar.occurrences', [
+        $this->getJson(route('backoffice.calendar-legacy.occurrences', [
             'start' => '2026-03-01',
             'end' => '2026-03-31',
         ]))->assertUnauthorized();
@@ -33,7 +33,7 @@ class CalendarOccurrencesTest extends TestCase
     public function test_requires_start_and_end_params(): void
     {
         $this->actingAs($this->user)
-            ->getJson(route('backoffice.calendar.occurrences'))
+            ->getJson(route('backoffice.calendar-legacy.occurrences'))
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['start', 'end']);
     }
@@ -41,7 +41,7 @@ class CalendarOccurrencesTest extends TestCase
     public function test_end_must_be_after_start(): void
     {
         $this->actingAs($this->user)
-            ->getJson(route('backoffice.calendar.occurrences', [
+            ->getJson(route('backoffice.calendar-legacy.occurrences', [
                 'start' => '2026-03-31',
                 'end' => '2026-03-01',
             ]))
@@ -77,7 +77,7 @@ class CalendarOccurrencesTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->getJson(route('backoffice.calendar.occurrences', [
+            ->getJson(route('backoffice.calendar-legacy.occurrences', [
                 'start' => '2026-03-01',
                 'end' => '2026-03-31',
             ]));
@@ -114,7 +114,7 @@ class CalendarOccurrencesTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->getJson(route('backoffice.calendar.occurrences', [
+            ->getJson(route('backoffice.calendar-legacy.occurrences', [
                 'start' => '2026-03-01',
                 'end' => '2026-03-31',
             ]));
@@ -146,7 +146,7 @@ class CalendarOccurrencesTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->getJson(route('backoffice.calendar.occurrences', [
+            ->getJson(route('backoffice.calendar-legacy.occurrences', [
                 'start' => '2026-03-01',
                 'end' => '2026-03-31',
             ]));
@@ -202,7 +202,7 @@ class CalendarOccurrencesTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->getJson(route('backoffice.calendar.occurrences', [
+            ->getJson(route('backoffice.calendar-legacy.occurrences', [
                 'start' => '2026-03-01',
                 'end' => '2026-03-31',
             ]));
@@ -245,7 +245,7 @@ class CalendarOccurrencesTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->getJson(route('backoffice.calendar.occurrences', [
+            ->getJson(route('backoffice.calendar-legacy.occurrences', [
                 'start' => '2026-03-01',
                 'end' => '2026-03-31',
             ]));
