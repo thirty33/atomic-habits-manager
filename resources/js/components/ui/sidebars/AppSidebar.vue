@@ -29,7 +29,7 @@ const sidebarOpen = ref(false);
 <template>
     <button
         type="button"
-        class="fixed top-3 left-3 z-50 inline-flex items-center p-2 text-sidebar-muted bg-transparent border border-transparent rounded-lg hover:bg-sidebar-hover focus:ring-4 focus:ring-sidebar-border text-sm focus:outline-none lg:hidden"
+        class="fixed top-3 left-3 z-50 inline-flex items-center p-2 text-ink-500 bg-card border border-line-200 rounded-lg hover:bg-paper text-sm focus:outline-none lg:hidden"
         @click="sidebarOpen = !sidebarOpen"
     >
         <span class="sr-only">Open sidebar</span>
@@ -52,8 +52,14 @@ const sidebarOpen = ref(false);
         ]"
         aria-label="Sidebar"
     >
-        <div class="h-full px-3 py-4 pt-14 lg:pt-4 overflow-y-auto bg-sidebar-bg border-r border-sidebar-border">
-            <ul class="space-y-2 font-medium">
+        <div class="h-full px-3 py-4 pt-14 lg:pt-4 overflow-y-auto bg-card border-r border-line-200">
+            <div class="px-2 pb-4 pt-1">
+                <div class="flex items-center gap-2.5">
+                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-700 font-display text-[16px] text-[#f4ead6]">A</span>
+                    <span class="font-display text-[20px] leading-none text-ink-900">Átomo<span class="text-brand-700">.</span></span>
+                </div>
+            </div>
+            <ul class="space-y-0.5">
                 <component
                     v-for="(item, index) in sidebarNavItems"
                     :key="`sidebar-nav-item-${index}`"

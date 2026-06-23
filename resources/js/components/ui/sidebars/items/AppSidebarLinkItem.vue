@@ -34,18 +34,26 @@ const { loadIcon } = useIconLoader();
         <a
             :href="href"
             :class="[
-                'flex items-center px-2 py-1.5 rounded-lg group',
+                'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] transition',
                 current
-                    ? 'bg-sidebar-hover text-sidebar-active'
-                    : 'text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-active'
+                    ? 'bg-brand-50 font-medium text-brand-800'
+                    : 'text-ink-700 hover:bg-line-100 hover:text-ink-900'
             ]"
         >
+            <span
+                v-if="current"
+                class="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-brand-700"
+                aria-hidden="true"
+            ></span>
             <component
                 :is="loadIcon(iconComponent)"
-                class="shrink-0 w-5 h-5 transition duration-75 text-sidebar-muted group-hover:text-sidebar-active"
+                :class="[
+                    'h-5 w-5 shrink-0 transition duration-75',
+                    current ? 'text-brand-700' : 'text-ink-400 group-hover:text-ink-700'
+                ]"
                 aria-hidden="true"
             />
-            <span class="ms-3">{{ text }}</span>
+            <span>{{ text }}</span>
         </a>
     </li>
 </template>

@@ -10,7 +10,9 @@ const props = defineProps({
 });
 const emit = defineEmits(['select']);
 
-const height = computed(() => Math.max((props.segment.end - props.segment.start) * props.hourH - 3, 16));
+// 1px gap, small floor (13px) only for very short blocks so blocks keep their
+// own time slot and consecutive habits never visually overlap.
+const height = computed(() => Math.max((props.segment.end - props.segment.start) * props.hourH - 1, 13));
 
 const style = computed(() => {
     const seg = props.segment;
@@ -31,9 +33,9 @@ const style = computed(() => {
     };
 });
 
-const showText = computed(() => height.value > 20);
-const showTime = computed(() => height.value > 34);
-const showSub = computed(() => height.value > 56 && props.segment.sub);
+const showText = computed(() => height.value > 11);
+const showTime = computed(() => height.value > 11);
+const showSub = computed(() => height.value > 28 && props.segment.sub);
 const suffix = computed(() => {
     if (props.segment.part === 'tail') return ' · viene de anoche';
     if (props.segment.part === 'head') return ' · sigue mañana';
@@ -48,14 +50,14 @@ const timeLabel = computed(() =>
 
 <template>
     <div
-        class="absolute z-10 cursor-pointer overflow-hidden rounded-md px-2 py-1 transition hover:brightness-95"
+        class="absolute z-10 cursor-pointer overflow-hidden rounded-md px-1.5 py-0.5 transition hover:brightness-95"
         :style="style"
         @click="emit('select', segment.id)"
     >
-        <p v-if="showText" class="truncate text-[11px] font-medium leading-tight">
-            {{ segment.name }}<span class="opacity-70">{{ suffix }}</span>
-        </p>
-        <p v-if="showTime" class="truncate font-mono text-[10px] leading-tight opacity-80">{{ timeLabel }}</p>
-        <p v-if="showSub" class="truncate text-[10px] leading-tight opacity-70">{{ segment.sub }}</p>
+        <div v-if="showText" class="flex items-baseline gap-1 leading-none">
+            <span class="min-w-0 flex-1 truncate text-[11px] font-medium">{{ segment.name }}<span class="opacity-70">{{ suffix }}</span></span>
+            <span v-if="showTime" class="shrink-0 font-mono text-[9.5px] opacity-80">{{ timeLabel }}</span>
+        </div>
+        <p v-if="showSub" class="mt-0.5 truncate text-[10px] leading-none opacity-70">{{ segment.sub }}</p>
     </div>
 </template>

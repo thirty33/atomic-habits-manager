@@ -49,6 +49,7 @@ final class DailyReportResource extends JsonResource
             'entries_count' => $total,
             'entries_reported' => $reported,
             'progress_label' => $total > 0 ? "{$reported}/{$total} reportados" : 'Sin entradas',
+            'progress_percent' => $total > 0 ? (int) round($reported / $total * 100) : 0,
             'is_complete' => $total > 0 && $reported === $total,
             'edit_url' => route('backoffice.daily-reports.edit', $snap->dailyReportId),
             'delete_action' => $this->formActionGenerator->setActionForm(

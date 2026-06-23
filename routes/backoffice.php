@@ -46,6 +46,12 @@ Route::jsonGroup('daily-reports', \App\Http\Controllers\Backoffice\DailyReportCo
     'index', 'json', 'store', 'destroy',
 ]);
 
+Route::get('daily-reports/board-json', [\App\Http\Controllers\Backoffice\DailyReportController::class, 'boardJson'])
+    ->name('daily-reports.board-json');
+
+Route::get('daily-reports/today', [\App\Http\Controllers\Backoffice\DailyReportController::class, 'today'])
+    ->name('daily-reports.today');
+
 Route::get('daily-reports/{id}/edit', [\App\Http\Controllers\Backoffice\DailyReportController::class, 'edit'])
     ->name('daily-reports.edit');
 

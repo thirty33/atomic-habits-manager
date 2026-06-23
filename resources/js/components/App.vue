@@ -9,7 +9,9 @@ const AtomicIaChatPage = defineAsyncComponent(() => import('@/pages/backoffice/A
 const CalendarPage = defineAsyncComponent(() => import('@/pages/backoffice/CalendarPage.vue'));
 const CalendarBoard = defineAsyncComponent(() => import('@/pages/backoffice/CalendarBoard.vue'));
 const DailyReportsPage = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportsPage.vue'));
+const DailyReportsBoard = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportsBoard.vue'));
 const DailyReportPage = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportPage.vue'));
+const DailyReportEditor = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportEditor.vue'));
 
 export default {
     name: 'App',
@@ -22,7 +24,9 @@ export default {
         CalendarPage,
         CalendarBoard,
         DailyReportsPage,
+        DailyReportsBoard,
         DailyReportPage,
+        DailyReportEditor,
     },
     setup() {
         return {
