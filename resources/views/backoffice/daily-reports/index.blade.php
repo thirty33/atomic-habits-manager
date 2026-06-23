@@ -1,5 +1,6 @@
 <x-backoffice-layout>
-    <daily-reports-page
-        :json-url="'{{ $json_url }}'"
+    <daily-reports-board
+        :board-json-url="'{{ $board_json_url }}'"
+        :today-url="'{{ $today_url }}'"
     />
 </x-backoffice-layout>

@@ -20,17 +20,23 @@ use App\ViewModels\Backoffice\DailyReports\GetDailyReportsViewModel;
 use Core\BoundedContext\DailyReports\Application\Actions\DeleteDailyReport;
 use Core\BoundedContext\DailyReports\Application\Actions\FindDailyReportWithEntries;
 use Core\BoundedContext\DailyReports\Application\Actions\FindOrCreateDailyReportForDate;
+use Core\BoundedContext\DailyReports\Application\Actions\GetDailyReportsForUser;
 use Core\BoundedContext\DailyReports\Application\Actions\SaveDailyReportEntries;
 use Core\BoundedContext\DailyReports\Application\Actions\UpdateDailyReport;
 use Core\BoundedContext\DailyReports\Application\DTOs\SaveDailyReportEntriesData;
 use Core\BoundedContext\DailyReports\Application\DTOs\UpdateDailyReportData;
+use Core\BoundedContext\DailyReports\Application\Responses\DailyReportResponse;
+use Core\BoundedContext\DailyReports\Domain\Criteria\DailyReportsCriteria;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\DailyReportId;
+use Core\BoundedContext\DailyReports\Domain\ValueObjects\Mood as DomainMood;
 use Core\BoundedContext\DailyReports\Domain\ValueObjects\ReportDate;
 use Core\BoundedContext\HabitOccurrences\Application\Actions\GetOccurrencesForDate;
 use Core\BoundedContext\HabitOccurrences\Domain\ValueObjects\OccurrenceDate;
 use Core\BoundedContext\Habits\Application\Actions\FindActiveHabitsForUser;
 use Core\BoundedContext\Identity\Domain\ValueObjects\Concretes\UserId;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 final class DailyReportController extends Controller
@@ -42,13 +48,65 @@ final class DailyReportController extends Controller
     public function index(): View
     {
         return view('backoffice.daily-reports.index', [
-            'json_url' => route('backoffice.daily-reports.json'),
+            'board_json_url' => route('backoffice.daily-reports.board-json'),
+            'today_url' => route('backoffice.daily-reports.today'),
         ]);
+    }
+
+    public function today(FindOrCreateDailyReportForDate $useCase): RedirectResponse
+    {
+        $response = $useCase(
+            UserId::from((int) auth()->user()->user_id),
+            ReportDate::fromString(now()->toDateString()),
+        );
+
+        return redirect()->route('backoffice.daily-reports.edit', $response->snapshot->dailyReportId);
     }
 
     public function json(GetDailyReportsViewModel $viewModel): JsonResponse
     {
         return response()->json($viewModel->toArray());
+    }
+
+    public function boardJson(Request $request, GetDailyReportsForUser $getReports): JsonResponse
+    {
+        $from = $request->input('date_range_from');
+        $to = $request->input('date_range_to');
+        $moodValue = $request->input('mood');
+
+        $criteria = new DailyReportsCriteria(
+            userId: UserId::from((int) $request->user()->user_id),
+            fromDate: $from !== null && $from !== '' ? ReportDate::fromString($from) : null,
+            toDate: $to !== null && $to !== '' ? ReportDate::fromString($to) : null,
+            mood: $moodValue !== null && $moodValue !== '' ? DomainMood::from($moodValue) : null,
+            page: max(1, (int) $request->input('page', 1)),
+            perPage: 15,
+            sortBy: 'report_date',
+            sortDir: 'desc',
+        );
+
+        $page = $getReports($criteria);
+
+        return response()->json([
+            'data' => array_map(
+                static fn ($report): array => (new DailyReportResource(
+                    DailyReportResponse::from($report)->snapshot
+                ))->resolve(),
+                $page->items->items(),
+            ),
+            'meta' => [
+                'current_page' => $page->page,
+                'last_page' => $page->lastPage(),
+                'total' => $page->total,
+                'per_page' => $page->perPage,
+                'from' => $page->from(),
+                'to' => $page->to(),
+            ],
+            'moods' => array_map(
+                static fn (Mood $m): array => ['value' => $m->value, 'label' => $m->label()],
+                Mood::cases(),
+            ),
+        ]);
     }
 
     public function store(
@@ -87,6 +145,7 @@ final class DailyReportController extends Controller
             'save_entries_url' => route('backoffice.daily-reports.save-entries', $id),
             'update_report_url' => route('backoffice.daily-reports.update', $id),
             'back_url' => route('backoffice.daily-reports.index'),
+            'atomic_ia_url' => route('backoffice.atomic-ia.index'),
         ]);
     }
 

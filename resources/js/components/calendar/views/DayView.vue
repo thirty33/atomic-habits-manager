@@ -15,7 +15,7 @@ const emit = defineEmits(['select']);
 
 const DAY_START = 0;
 const DAY_END = 24;
-const HOUR_H = 46;
+const HOUR_H = 96;
 
 const dayBlocks = computed(() => blocksOnDay(props.blocks, props.anchor.toISO()));
 const total = computed(() => dayBlocks.value.length);

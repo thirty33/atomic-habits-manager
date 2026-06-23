@@ -15,7 +15,9 @@ const emit = defineEmits(['select']);
 
 const DAY_START = 0;
 const DAY_END = 24;
-const HOUR_H = 40;
+// Taller rows so short/consecutive habits (e.g. 08:10–08:20, 08:20–08:30) keep
+// their own readable slot and never visually overlap.
+const HOUR_H = 96;
 
 const days = computed(() => weekDays(props.anchor));
 
