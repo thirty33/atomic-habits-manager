@@ -83,6 +83,13 @@ interface HabitRepository
     public function findActiveForUser(UserId $userId): Habits;
 
     /**
+     * Número de habits vigentes (no soft-deleted) del usuario. Cuenta la cuota
+     * que consume el límite de plan free; no carga las entidades. Consumido por
+     * la política EnsureCanCreateHabit antes de crear un nuevo habit.
+     */
+    public function countForUser(UserId $userId): int;
+
+    /**
      * IDs de habits con `needs_occurrence_rebuild=true`. Consumido por el
      * scheduler/job que regenera occurrences tras cambios de programación.
      *

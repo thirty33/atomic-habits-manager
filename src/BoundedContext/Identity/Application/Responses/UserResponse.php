@@ -15,6 +15,7 @@ final readonly class UserResponse
         public bool $isActive,
         public bool $isAdmin,
         public bool $isVerified,
+        public bool $isGuest,
         public ?string $createdAt,
     ) {}
 
@@ -33,6 +34,7 @@ final readonly class UserResponse
             isActive: $user->isActive(),
             isAdmin: $user->isAdmin(),
             isVerified: $user->isVerified(),
+            isGuest: $user->isGuest(),
             createdAt: $user->createdAt()?->format(\DateTimeInterface::ATOM),
         );
     }

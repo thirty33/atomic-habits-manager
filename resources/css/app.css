@@ -41,6 +41,204 @@
         background-size: 100% 1px;
         padding-bottom: 1px;
     }
+
+    /* ─────────── Acceso & Suscripciones — token-based component classes ───────────
+       New, parallel classes (token coexistence rule: nothing existing is modified).
+       They mirror the delivered mockups and reference the project's CSS variables. */
+
+    /* Eyebrow label (backoffice page/section header) */
+    .po-eyebrow {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgb(var(--color-ink-400));
+    }
+
+    /* Typography helpers used by the bespoke subscription surfaces */
+    .font-serif {
+        font-family: 'Instrument Serif', 'Times New Roman', serif;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+    }
+    .font-mono {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+    }
+
+    /* Buttons */
+    .btn {
+        @apply inline-flex items-center gap-2 font-medium text-sm leading-none px-[18px] py-[11px] rounded-lg transition-all duration-150 cursor-pointer;
+    }
+    .btn-primary {
+        @apply bg-brand-700 text-[#f4ead6];
+    }
+    .btn-primary:hover {
+        @apply bg-brand-800;
+    }
+    .btn-ghost {
+        @apply bg-transparent text-ink-900;
+    }
+    .btn-ghost:hover {
+        @apply bg-line-100;
+    }
+    .btn-outline {
+        @apply bg-transparent text-ink-900;
+        box-shadow: inset 0 0 0 1px rgb(var(--color-line-300));
+    }
+    .btn-outline:hover {
+        @apply bg-line-100;
+    }
+    .btn[disabled],
+    .btn.is-disabled {
+        cursor: default;
+        opacity: 1;
+    }
+
+    /* Inputs */
+    .field-label {
+        @apply text-[13px] font-medium text-ink-700;
+        letter-spacing: 0.005em;
+    }
+    .field-input {
+        @apply w-full bg-card px-[14px] py-[11px] rounded-lg text-[14.5px] text-ink-900 outline-none transition-shadow duration-150;
+        box-shadow: inset 0 0 0 1px rgb(var(--color-line-200));
+    }
+    .field-input::placeholder {
+        color: rgb(var(--color-ink-400));
+    }
+    .field-input:focus {
+        box-shadow: inset 0 0 0 1.5px rgb(var(--color-brand-700));
+    }
+    .field-input.err {
+        box-shadow: inset 0 0 0 1.5px rgb(var(--color-danger-2));
+    }
+    .field-error {
+        @apply text-xs text-danger-2 mt-1.5 flex items-center gap-1.5;
+    }
+
+    /* Tag chips */
+    .chip {
+        @apply inline-flex items-center gap-[5px] px-2.5 py-[3px] rounded-full text-[11.5px] font-medium;
+    }
+    .chip.brand {
+        @apply bg-brand-50 text-brand-800;
+    }
+    .chip.neutral {
+        @apply bg-line-100 text-ink-700;
+    }
+    .chip .dot {
+        @apply w-[5px] h-[5px] rounded-full bg-current;
+    }
+
+    /* Icon button */
+    .icon-btn {
+        @apply w-[30px] h-[30px] inline-grid place-items-center rounded-md text-ink-500 border border-transparent transition-all duration-150;
+    }
+    .icon-btn:hover {
+        @apply bg-card text-ink-900;
+        border-color: rgb(var(--color-line-200));
+    }
+
+    /* Plan card */
+    .plan-card {
+        @apply bg-card rounded-2xl relative transition-all duration-150;
+        border: 1px solid rgb(var(--color-line-200));
+    }
+    .plan-card.featured {
+        border-color: rgb(var(--color-brand-700));
+        box-shadow: 0 1px 0 rgb(var(--color-brand-700)), 0 24px 60px -28px rgba(31, 82, 71, 0.45);
+    }
+    .plan-card.featured::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 16px;
+        box-shadow: inset 0 0 0 1px rgb(var(--color-brand-700));
+        pointer-events: none;
+    }
+
+    /* Feature row (check / limited / star) */
+    .feat {
+        @apply flex items-start gap-[11px] py-[9px];
+    }
+    .feat .ic {
+        @apply flex-none w-5 h-5 rounded-full grid place-items-center mt-px;
+    }
+    .feat .ic.on {
+        @apply bg-brand-50 text-brand-700;
+    }
+    .feat .ic.off {
+        @apply bg-line-100 text-ink-400;
+    }
+    .feat .ic.star {
+        @apply bg-brand-700 text-[#f4ead6];
+    }
+    .feat .txt {
+        @apply text-[14.5px] text-ink-700 leading-snug;
+    }
+    .feat.muted .txt {
+        @apply text-ink-400;
+    }
+    .feat .pro {
+        @apply font-medium text-ink-900;
+    }
+
+    /* Payment data card (Binance) */
+    .pay-card {
+        @apply bg-paper rounded-xl;
+        border: 1px solid rgb(var(--color-line-200));
+    }
+    .pay-readonly {
+        @apply font-mono text-[13.5px] text-ink-900 bg-card rounded-lg px-3 py-2.5 flex items-center justify-between gap-2.5;
+        border: 1px solid rgb(var(--color-line-200));
+    }
+    .copy-btn {
+        @apply flex-none w-[30px] h-[30px] grid place-items-center rounded-md text-ink-500 bg-card transition-all duration-150 cursor-pointer;
+        border: 1px solid rgb(var(--color-line-200));
+    }
+    .copy-btn:hover {
+        @apply text-brand-700;
+        border-color: rgb(var(--color-brand-300));
+    }
+
+    /* Inline alert banner (AppAlert) */
+    .app-alert {
+        @apply rounded-[10px] px-3.5 py-3 flex items-start gap-2.5 text-[13px];
+    }
+    .app-alert.danger {
+        @apply bg-danger-2/10 text-danger-2;
+        box-shadow: inset 0 0 0 1px rgba(180, 69, 47, 0.18);
+    }
+    .app-alert.warning {
+        @apply text-warning;
+        background: #f5ebd6;
+    }
+    .app-alert.success {
+        @apply text-success-2;
+        background: #e5f1ec;
+    }
+
+    /* Spinner */
+    @keyframes a-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    .spinner {
+        @apply inline-block w-[15px] h-[15px] rounded-full;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        opacity: 0.85;
+        animation: a-spin 0.7s linear infinite;
+    }
+
+    /* App action bar (header subscribe zone) */
+    .action-zone {
+        @apply flex items-center gap-2;
+    }
+    .subscribe-btn {
+        box-shadow: 0 1px 0 rgba(15, 42, 37, 0.25);
+    }
 }
 
 @layer base {

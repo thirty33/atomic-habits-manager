@@ -6,6 +6,7 @@ export default {
 
 <script setup>
 import { AppSidebar } from '@/components/ui/sidebars'
+import SubscribeHeader from '@/components/subscriptions/SubscribeHeader.vue'
 
 defineProps({
     title: {
@@ -15,6 +16,10 @@ defineProps({
     sidebarNavItems: {
         type: Array,
         required: true,
+    },
+    plansUrl: {
+        type: String,
+        default: '/plans',
     },
 })
 </script>
@@ -31,6 +36,9 @@ defineProps({
             <h1 class="text-base font-semibold leading-7 text-page-heading">
                 {{ title }}
             </h1>
+
+            <SubscribeHeader :plans-url="plansUrl" class="hidden lg:flex" />
+            <SubscribeHeader :plans-url="plansUrl" compact class="lg:hidden" />
         </header>
 
         <main>

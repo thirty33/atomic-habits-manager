@@ -87,7 +87,7 @@ final class StartConversationTest extends TestCase
 
     public function test_endpoint_creates_conversation_for_authenticated_user(): void
     {
-        $user = User::factory()->create();
+        $user = $this->makeUnlimited(User::factory()->create());
 
         $payload = $this->actingAs($user)
             ->postJson(route('backoffice.atomic-ia.new-conversation'))

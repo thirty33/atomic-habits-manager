@@ -19,6 +19,7 @@
             <backoffice-layout
                 title="{{ $title ?? '' }}"
                 :sidebar-nav-items="{{ json_encode($sidebarNavItems) }}"
+                plans-url="{{ route('subscriptions.plans') }}"
             >
                 {{ $slot }}
             </backoffice-layout>

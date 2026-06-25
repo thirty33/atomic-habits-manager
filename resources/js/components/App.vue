@@ -12,6 +12,7 @@ const DailyReportsPage = defineAsyncComponent(() => import('@/pages/backoffice/D
 const DailyReportsBoard = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportsBoard.vue'));
 const DailyReportPage = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportPage.vue'));
 const DailyReportEditor = defineAsyncComponent(() => import('@/pages/backoffice/DailyReportEditor.vue'));
+const PlansPage = defineAsyncComponent(() => import('@/pages/subscriptions/PlansPage.vue'));
 
 export default {
     name: 'App',
@@ -27,6 +28,7 @@ export default {
         DailyReportsBoard,
         DailyReportPage,
         DailyReportEditor,
+        PlansPage,
     },
     setup() {
         return {

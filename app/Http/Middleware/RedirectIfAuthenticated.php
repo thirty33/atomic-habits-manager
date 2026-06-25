@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Providers\RouteServiceProvider;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +20,13 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
+                // Guests (D1 auto-users) must still reach login/register so they
+                // can claim or sign into a real account; only fully-registered
+                // users are bounced away from the guest-only pages.
+                if ($request->user()->isGuest()) {
+                    return $next($request);
+                }
+
                 return redirect($request->user()->getRedirectUrl());
             }
         }

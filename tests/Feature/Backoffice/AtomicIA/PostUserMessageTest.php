@@ -111,7 +111,7 @@ final class PostUserMessageTest extends TestCase
 
     public function test_endpoint_creates_user_message_for_authenticated_owner(): void
     {
-        $user = User::factory()->create();
+        $user = $this->makeUnlimited(User::factory()->create());
         $start = $this->app->make(StartConversation::class)(UserId::from($user->user_id));
 
         $payload = $this->actingAs($user)
@@ -133,7 +133,7 @@ final class PostUserMessageTest extends TestCase
     public function test_endpoint_returns_404_when_conversation_belongs_to_other_user(): void
     {
         $owner = User::factory()->create();
-        $other = User::factory()->create();
+        $other = $this->makeUnlimited(User::factory()->create());
         $start = $this->app->make(StartConversation::class)(UserId::from($owner->user_id));
 
         $this->actingAs($other)
