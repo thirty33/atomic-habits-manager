@@ -105,6 +105,13 @@ readonly class HandleBackofficeRequests
 
         view()->share('sidebarNavItems', $generator->getSidebarItems());
 
+        // The header shows the current plan; tierOf defaults to free when the
+        // user has no subscription row.
+        view()->share(
+            'currentPlanTier',
+            $userId !== 0 ? $this->planReader->tierOf(UserId::from($userId))->value() : 'free',
+        );
+
         return $next($request);
     }
 

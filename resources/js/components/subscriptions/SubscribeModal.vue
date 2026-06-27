@@ -40,6 +40,11 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    // Where to send the user after a successful submit (back into the app).
+    dashboardUrl: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits(['close']);
@@ -59,6 +64,12 @@ function close() {
 function acknowledge() {
     reset();
     emit('close');
+    // After a successful subscribe/register, take the user back into the app
+    // (the Plans page is standalone, with no sidebar to navigate away).
+    if (props.dashboardUrl) {
+        window.location.href = props.dashboardUrl;
+        return;
+    }
 }
 
 function onCopy() {

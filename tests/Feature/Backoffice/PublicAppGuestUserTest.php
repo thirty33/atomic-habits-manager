@@ -146,7 +146,7 @@ class PublicAppGuestUserTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('login'))
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('backoffice.dashboard.index'));
     }
 
     public function test_write_requests_do_not_silently_create_a_guest(): void

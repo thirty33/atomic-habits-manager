@@ -20,11 +20,12 @@ Route::middleware('auth')->group(function () {
         ->name('subscriptions.register');
 });
 
-// Free/guest usage is not gated by email verification (D4): the Breeze
-// dashboard stays reachable for unverified users. Verification remains
-// available but never blocks the app.
+// The real freemium app lives under /backoffice. The legacy Breeze /dashboard
+// stub just bounces there so no authenticated user ever lands on the empty
+// scaffold (kept named 'dashboard' for the email-verification redirect, etc.).
+// Not email-verification gated (D4): free/guest usage never requires verifying.
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return redirect()->route('backoffice.dashboard.index');
 })->middleware(['auth'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {

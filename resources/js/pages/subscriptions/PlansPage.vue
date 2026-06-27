@@ -18,6 +18,7 @@ const props = defineProps({
     plansJsonUrl: { type: String, required: true },
     notifyPaymentUrl: { type: String, required: true },
     registerUrl: { type: String, required: true },
+    dashboardUrl: { type: String, default: '/backoffice/dashboard' },
 });
 
 const gateway = new HttpSubscriptionGateway({
@@ -54,6 +55,10 @@ onMounted(load);
         <div class="mx-auto max-w-[1000px] px-5 py-8 lg:px-8 lg:py-12">
             <!-- Header -->
             <header>
+                <a :href="dashboardUrl" class="inline-flex items-center gap-1.5 text-[13px] text-ink-500 hover:text-brand-700 mb-4">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                    Volver al panel
+                </a>
                 <div class="po-eyebrow mb-2">Planes · Átomo</div>
                 <h1 class="display text-[40px] lg:text-[52px] text-ink-900">Elige tu plan</h1>
                 <p class="mt-3 text-[14px] text-ink-500 leading-relaxed">
@@ -101,6 +106,7 @@ onMounted(load);
             :mode="modalMode"
             :binance-email="binancePaymentEmail"
             :amount="unlimitedAmount"
+            :dashboard-url="dashboardUrl"
             @close="closeModal"
         />
     </div>

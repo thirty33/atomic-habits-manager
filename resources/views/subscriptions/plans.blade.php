@@ -18,6 +18,7 @@
             :plans-json-url="'{{ $json_url }}'"
             :notify-payment-url="'{{ route('subscriptions.notify-payment') }}'"
             :register-url="'{{ route('subscriptions.register') }}'"
+            :dashboard-url="'{{ route('backoffice.dashboard.index') }}'"
         />
     </body>
 </html>

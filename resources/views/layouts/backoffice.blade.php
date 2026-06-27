@@ -20,6 +20,7 @@
                 title="{{ $title ?? '' }}"
                 :sidebar-nav-items="{{ json_encode($sidebarNavItems) }}"
                 plans-url="{{ route('subscriptions.plans') }}"
+                current-plan-tier="{{ $currentPlanTier ?? 'free' }}"
             >
                 {{ $slot }}
             </backoffice-layout>
