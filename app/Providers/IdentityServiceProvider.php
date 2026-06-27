@@ -8,11 +8,15 @@ use Core\BoundedContext\Identity\Application\Services\EmailVerificationNotifier;
 use Core\BoundedContext\Identity\Application\Services\LoginThrottle;
 use Core\BoundedContext\Identity\Application\Services\PasswordResetBroker;
 use Core\BoundedContext\Identity\Application\Services\SessionAuthenticator;
+use Core\BoundedContext\Identity\Application\UserReader;
+use Core\BoundedContext\Identity\Domain\Events\UserClaimedAccount;
 use Core\BoundedContext\Identity\Domain\Events\UserEmailWasVerified;
 use Core\BoundedContext\Identity\Domain\Events\UserHasLoggedIn;
 use Core\BoundedContext\Identity\Domain\Events\UserHasLoggedOut;
 use Core\BoundedContext\Identity\Domain\Events\UserPasswordWasChanged;
 use Core\BoundedContext\Identity\Domain\Events\UserPasswordWasReset;
+use Core\BoundedContext\Identity\Domain\Events\UserWasActivated;
+use Core\BoundedContext\Identity\Domain\Events\UserWasDeactivated;
 use Core\BoundedContext\Identity\Domain\Events\UserWasLockedOut;
 use Core\BoundedContext\Identity\Domain\Events\UserWasRegistered;
 use Core\BoundedContext\Identity\Domain\Services\PasswordHasher;
@@ -33,6 +37,7 @@ final class IdentityServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     public array $bindings = [
         UserRepository::class => EloquentUserRepository::class,
+        UserReader::class => EloquentUserRepository::class,
         PasswordHasher::class => LaravelHasher::class,
         SessionAuthenticator::class => BreezeSessionAuthenticator::class,
         PasswordResetBroker::class => BreezePasswordResetBroker::class,
@@ -59,5 +64,8 @@ final class IdentityServiceProvider extends ServiceProvider
         $registry->register(UserPasswordWasReset::eventName(), UserPasswordWasReset::class);
         $registry->register(UserPasswordWasChanged::eventName(), UserPasswordWasChanged::class);
         $registry->register(UserWasLockedOut::eventName(), UserWasLockedOut::class);
+        $registry->register(UserWasActivated::eventName(), UserWasActivated::class);
+        $registry->register(UserWasDeactivated::eventName(), UserWasDeactivated::class);
+        $registry->register(UserClaimedAccount::eventName(), UserClaimedAccount::class);
     }
 }

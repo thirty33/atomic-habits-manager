@@ -5,9 +5,11 @@ export default {
 </script>
 
 <script setup>
+import { computed } from 'vue'
 import { AppSidebar } from '@/components/ui/sidebars'
+import SubscribeHeader from '@/components/subscriptions/SubscribeHeader.vue'
 
-defineProps({
+const props = defineProps({
     title: {
         type: String,
         required: true,
@@ -16,7 +18,18 @@ defineProps({
         type: Array,
         required: true,
     },
+    plansUrl: {
+        type: String,
+        default: '/plans',
+    },
+    currentPlanTier: {
+        type: String,
+        default: 'free',
+    },
 })
+
+const isUnlimited = computed(() => props.currentPlanTier === 'unlimited')
+const planLabel = computed(() => (isUnlimited.value ? 'Unlimited' : 'Free'))
 </script>
 
 <template>
@@ -31,6 +44,19 @@ defineProps({
             <h1 class="text-base font-semibold leading-7 text-page-heading">
                 {{ title }}
             </h1>
+
+            <div class="action-zone">
+                <!-- Current plan badge -->
+                <span :class="['chip', isUnlimited ? 'brand' : 'neutral']" title="Tu plan actual">
+                    <span class="dot"></span>{{ planLabel }}
+                </span>
+
+                <!-- Subscríbete only when there's something to upgrade to -->
+                <template v-if="!isUnlimited">
+                    <SubscribeHeader :plans-url="plansUrl" class="hidden lg:flex" />
+                    <SubscribeHeader :plans-url="plansUrl" compact class="lg:hidden" />
+                </template>
+            </div>
         </header>
 
         <main>

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,5 +28,21 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_duplicate_email_shows_a_spanish_message(): void
+    {
+        User::factory()->create(['email' => 'taken@example.com']);
+
+        $response = $this->post('/register', [
+            'name' => 'Test User',
+            'email' => 'taken@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors([
+            'email' => __('Este correo ya está registrado.'),
+        ]);
     }
 }

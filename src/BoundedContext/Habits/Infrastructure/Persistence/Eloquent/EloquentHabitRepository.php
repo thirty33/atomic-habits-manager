@@ -136,6 +136,13 @@ final readonly class EloquentHabitRepository implements HabitRepository
         return new Habits($habits);
     }
 
+    public function countForUser(UserId $userId): int
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId->value())
+            ->count();
+    }
+
     public function pendingRebuildIds(): array
     {
         return $this->model->newQuery()

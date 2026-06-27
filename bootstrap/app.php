@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
         then: function () {
-            Route::middleware(['backoffice', 'auth', 'verified'])
+            // No `verified` gate on the app surface (D4): free/guest users must
+            // use Habits/Calendar/Reports/Dashboard WITHOUT confirming their
+            // email. Email verification stays available but is non-gating.
+            Route::middleware(['backoffice', 'auth'])
                 ->prefix('backoffice')
                 ->as('backoffice.')
                 ->group(base_path('routes/backoffice.php'));
@@ -21,6 +24,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
+        // The guest auto-user (D1) must be logged in BEFORE the `auth` middleware
+        // runs. `Authenticate` is pulled forward by the default priority list
+        // (it implements AuthenticatesRequests), so we slot EnsureGuestUser just
+        // ahead of it; that keeps it after StartSession/SubstituteBindings.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            prepend: \App\Http\Middleware\EnsureGuestUser::class,
+        );
+
         $middleware->appendToGroup('backoffice', [
             \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
@@ -28,6 +40,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\EnsureGuestUser::class,
+            \App\Http\Middleware\EnsureUserIsActive::class,
             \App\Http\Middleware\HandleBackofficeRequests::class,
         ]);
 
@@ -35,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => \App\Http\Middleware\Authenticate::class,
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+            'module' => \App\Http\Middleware\EnsureModuleAllowed::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

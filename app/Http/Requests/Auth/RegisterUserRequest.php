@@ -26,4 +26,30 @@ final class RegisterUserRequest extends FormRequest
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'name' => __('Nombre'),
+            'email' => __('Correo'),
+            'password' => __('Contraseña'),
+        ];
+    }
+
+    /**
+     * Spanish message for the email uniqueness rule, matching the domain
+     * EmailAlreadyTaken message so the request-layer and domain-layer copy stay
+     * consistent.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'email.unique' => __('Este correo ya está registrado.'),
+        ];
+    }
 }

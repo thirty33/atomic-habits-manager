@@ -37,9 +37,12 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
                     </a>
                 @else
-                    <a href="{{ route('register') }}"
+                    {{-- D1: free usage without a login wall. This CTA drops the
+                         visitor straight into the app, where the guest auto-user
+                         middleware creates them an active free account. --}}
+                    <a href="{{ route('backoffice.dashboard.index') }}"
                        class="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg bg-brand-700 text-paper font-medium text-[15px] hover:bg-brand-800 transition">
-                        Crear mi cuenta
+                        Probar sin registrarme
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
                     </a>
                     <a href="{{ route('login') }}"

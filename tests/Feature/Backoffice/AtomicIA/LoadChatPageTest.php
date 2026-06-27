@@ -92,6 +92,8 @@ final class LoadChatPageTest extends TestCase
             body: 'hola',
         ));
 
+        $this->makeUnlimited($user);
+
         $payload = $this->actingAs($user)
             ->getJson(route('backoffice.atomic-ia.json', ['conversation_id' => $start->conversationId]))
             ->assertSuccessful()
@@ -105,7 +107,7 @@ final class LoadChatPageTest extends TestCase
 
     public function test_endpoint_picks_latest_conversation_when_no_query_param(): void
     {
-        $user = User::factory()->create();
+        $user = $this->makeUnlimited(User::factory()->create());
         $startA = $this->app->make(StartConversation::class)(UserId::from($user->user_id));
         sleep(1);
         $startB = $this->app->make(StartConversation::class)(UserId::from($user->user_id));
@@ -121,7 +123,7 @@ final class LoadChatPageTest extends TestCase
 
     public function test_endpoint_returns_empty_payload_when_user_has_no_conversations(): void
     {
-        $user = User::factory()->create();
+        $user = $this->makeUnlimited(User::factory()->create());
 
         $payload = $this->actingAs($user)
             ->getJson(route('backoffice.atomic-ia.json'))

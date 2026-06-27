@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'binance' => [
+        'payment_email' => env('BINANCE_PAYMENT_EMAIL'),
+    ],
+
 ];

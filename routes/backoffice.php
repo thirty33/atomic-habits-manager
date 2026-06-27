@@ -32,15 +32,39 @@ Route::jsonGroup('calendar-legacy', \App\Http\Controllers\Backoffice\CalendarCon
 Route::get('calendar-legacy/occurrences', [\App\Http\Controllers\Backoffice\CalendarController::class, 'occurrences'])
     ->name('calendar-legacy.occurrences');
 
-Route::jsonGroup('atomic-ia', \App\Http\Controllers\Backoffice\AtomicIAController::class, [
-    'index', 'json', 'store',
-]);
+// Users management module (Identity + Access). Superadmin-only: the whole group
+// is gated by EnsureCanManageUsers (capability check via the Access BC) so a
+// regular user or guest cannot list users or toggle activation by URL.
+Route::middleware(\App\Http\Middleware\EnsureCanManageUsers::class)->group(function (): void {
+    Route::jsonGroup('users', \App\Http\Controllers\Backoffice\UserController::class, [
+        'index', 'json',
+    ]);
 
-Route::post('atomic-ia/conversations', [\App\Http\Controllers\Backoffice\AtomicIAController::class, 'newConversation'])
-    ->name('atomic-ia.new-conversation');
+    Route::put('users/{id}/activation', [\App\Http\Controllers\Backoffice\UserController::class, 'activation'])
+        ->name('users.activation');
 
-Route::delete('atomic-ia/conversations/{id}', [\App\Http\Controllers\Backoffice\AtomicIAController::class, 'destroyConversation'])
-    ->name('atomic-ia.conversations.destroy');
+    // Crypto payment reconciliation by the superadmin: confirm flips the user's
+    // subscription to the paid plan; reject returns it to its current active tier.
+    Route::put('users/{id}/confirm-payment', [\App\Http\Controllers\Backoffice\UserController::class, 'confirmPayment'])
+        ->name('users.confirm-payment');
+
+    Route::put('users/{id}/reject-payment', [\App\Http\Controllers\Backoffice\UserController::class, 'rejectPayment'])
+        ->name('users.reject-payment');
+});
+
+// Atomic IA is an unlimited-only module: the plan gate blocks free users
+// (superadmin bypasses). Sidebar gating mirrors this.
+Route::middleware('module:atomic_ia')->group(function (): void {
+    Route::jsonGroup('atomic-ia', \App\Http\Controllers\Backoffice\AtomicIAController::class, [
+        'index', 'json', 'store',
+    ]);
+
+    Route::post('atomic-ia/conversations', [\App\Http\Controllers\Backoffice\AtomicIAController::class, 'newConversation'])
+        ->name('atomic-ia.new-conversation');
+
+    Route::delete('atomic-ia/conversations/{id}', [\App\Http\Controllers\Backoffice\AtomicIAController::class, 'destroyConversation'])
+        ->name('atomic-ia.conversations.destroy');
+});
 
 Route::jsonGroup('daily-reports', \App\Http\Controllers\Backoffice\DailyReportController::class, [
     'index', 'json', 'store', 'destroy',

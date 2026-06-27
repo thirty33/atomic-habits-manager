@@ -64,7 +64,7 @@ final class DeleteConversationTest extends TestCase
     public function test_endpoint_returns_404_when_conversation_belongs_to_other_user(): void
     {
         $owner = User::factory()->create();
-        $other = User::factory()->create();
+        $other = $this->makeUnlimited(User::factory()->create());
         $start = $this->app->make(StartConversation::class)(UserId::from($owner->user_id));
 
         $this->actingAs($other)
@@ -76,7 +76,7 @@ final class DeleteConversationTest extends TestCase
 
     public function test_endpoint_deletes_owned_conversation(): void
     {
-        $user = User::factory()->create();
+        $user = $this->makeUnlimited(User::factory()->create());
         $start = $this->app->make(StartConversation::class)(UserId::from($user->user_id));
 
         $this->actingAs($user)
